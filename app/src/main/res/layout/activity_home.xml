@@ -57,6 +57,7 @@
                 android:scaleType="fitCenter"
                 android:rotationY="180"
                 android:padding="10dp"
+                android:tint="@color/black"
                 android:src="@drawable/ai_icon"/>
 
             <TextView
@@ -155,7 +156,8 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:contentDescription="My Journey Icon"
-                android:src="@drawable/rating_icon"
+                android:src="@drawable/journey"
+                android:tint="@color/black"
                 android:scaleType="fitCenter" />
 
             <TextView
