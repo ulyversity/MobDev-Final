@@ -125,10 +125,19 @@
 
             <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
-                    <TextView android:id="@+id/routeDistance" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Select points to calculate fare" android:gravity="center" android:layout_marginBottom="8dp"/>
+                    <TextView android:id="@+id/routeDistance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Select points to calculate fare"
+                        android:gravity="center"
+                        android:layout_marginBottom="16dp"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:textColor="#000000"
+                        android:padding="8dp"/>
                     <LinearLayout android:id="@+id/fareDetailsContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="#F0F7FF" android:padding="12dp" android:visibility="invisible">
-                        <TextView android:id="@+id/fareCalculation" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp"/>
-                        <TextView android:id="@+id/totalFareText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:textStyle="bold" android:textColor="#008DFF"/>
+                        <TextView android:id="@+id/fareCalculation" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp" android:layout_marginBottom="4dp"/>
+                        <TextView android:id="@+id/totalFareText" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="16sp" android:textColor="#333333"/>
                         <View android:id="@+id/divider" android:layout_width="match_parent" android:layout_height="1dp" android:background="#DDD" android:layout_marginVertical="8dp" android:visibility="gone"/>
                         <TextView android:id="@+id/jeepneyRoutesTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/connecting_jeepneys" android:textStyle="bold" android:visibility="gone"/>
                         <TextView android:id="@+id/jeepneyRoutesText" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:layout_marginTop="4dp"/>
