@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#D6EAF8">
+
+    <!-- Logo / Header Image -->
+    <ImageView
+        android:id="@+id/imgLogo"
+        android:layout_width="179dp"
+        android:layout_height="175dp"
+        android:layout_marginTop="32dp"
+        android:contentDescription="Cebu Guide Logo"
+        android:scaleType="fitCenter"
+        android:src="@drawable/cebu_guide_logo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Grid of 4 buttons using a 2x2 GridLayout -->
+    <GridLayout
+        android:id="@+id/gridMenu"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:columnCount="2"
+        android:rowCount="2"
+        android:useDefaultMargins="false"
+        app:layout_constraintTop_toBottomOf="@id/imgLogo"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- AI Guide Card -->
+        <LinearLayout
+            android:id="@+id/cardAiGuide"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_margin="8dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/card_bg">
+
+            <ImageView
+                android:layout_width="94dp"
+                android:layout_height="94dp"
+                android:contentDescription="AI Guide Icon"
+                android:scaleType="fitCenter"
+                android:rotationY="180"
+                android:padding="10dp"
+                android:src="@drawable/ai_icon"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="AI GUIDE"
+                android:textColor="#1A3A5C"
+                android:textSize="13sp"
+                android:letterSpacing="0.08"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Travel Planner Card -->
+        <LinearLayout
+            android:id="@+id/cardTravelPlanner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_margin="8dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/card_bg">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="Travel Planner Icon"
+                android:src="@drawable/planner_icon"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="TRAVEL PLANNER"
+                android:textColor="#1A3A5C"
+                android:textSize="13sp"
+                android:letterSpacing="0.04"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- Top Rated Card (PlaceRating Model) -->
+        <LinearLayout
+            android:id="@+id/cardItineraryPlanner"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_margin="8dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/card_bg">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="Itinerary Planner"
+                android:src="@drawable/journey_icon"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Itinerary Planner"
+                android:textColor="#1A3A5C"
+                android:textSize="13sp"
+                android:letterSpacing="0.08"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+        <!-- My Journey Card (UserPlace Model) -->
+        <LinearLayout
+            android:id="@+id/cardMyJourney"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_columnWeight="1"
+            android:layout_rowWeight="1"
+            android:layout_margin="8dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="@drawable/card_bg">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:contentDescription="My Journey Icon"
+                android:src="@drawable/rating_icon"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="MY JOURNEY"
+                android:textColor="#1A3A5C"
+                android:textSize="13sp"
+                android:letterSpacing="0.08"
+                android:fontFamily="sans-serif-medium" />
+        </LinearLayout>
+
+    </GridLayout>
+
+    <!-- Bottom Home Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnHome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:fabCustomSize="76dp"
+        android:layout_marginBottom="32dp"
+        android:src="@drawable/ic_home"
+        app:maxImageSize="75dp"
+        app:backgroundTint="#1A3A5C"
+        app:tint="@android:color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

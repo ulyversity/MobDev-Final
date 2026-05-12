@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F8F9FA">
+
+    <!-- Top Search Bar -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/searchCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp">
+
+            <AutoCompleteTextView
+                android:id="@+id/searchEditText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/search_hint"
+                android:background="@android:color/transparent"
+                android:padding="12dp"
+                android:inputType="text"
+                android:importantForAutofill="no"
+                android:textSize="16sp"
+                android:completionThreshold="1"/>
+
+            <ImageButton
+                android:id="@+id/searchButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_search"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Search"
+                app:tint="#555555"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/searchCard"
+        android:orientation="vertical">
+
+        <FrameLayout
+            android:id="@+id/mapContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1.2">
+
+            <org.osmdroid.views.MapView
+                android:id="@+id/map"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="12dp"
+                android:orientation="vertical">
+                <ImageButton android:id="@+id/zoomInButton" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginBottom="8dp" android:src="@drawable/ic_zoom_in" android:background="@android:color/white" android:elevation="4dp" app:tint="#333333" android:contentDescription="Zoom In"/>
+                <ImageButton android:id="@+id/zoomOutButton" android:layout_width="40dp" android:layout_height="40dp" android:src="@drawable/ic_zoom_out" android:background="@android:color/white" android:elevation="4dp" app:tint="#333333" android:contentDescription="Zoom Out"/>
+            </LinearLayout>
+
+            <!-- Action Buttons Overlay -->
+            <LinearLayout
+                android:id="@+id/actionButtonsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_margin="16dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/retryButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/retry"
+                    android:visibility="gone"
+                    android:backgroundTint="#F44336"
+                    android:textColor="@android:color/white"
+                    android:textAllCaps="false"/>
+
+                <Button
+                    android:id="@+id/actionButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/confirm_pickup"
+                    android:visibility="gone"
+                    android:backgroundTint="#008DFF"
+                    android:textColor="@android:color/white"
+                    android:textAllCaps="false"/>
+            </LinearLayout>
+        </FrameLayout>
+
+        <LinearLayout
+            android:id="@+id/fareLayout"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@android:color/white">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Travel Estimates" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
+                <TextView android:id="@+id/tabJeepney" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Jeepney" android:gravity="center" android:padding="8dp" android:background="@drawable/tab_selected_bg" android:textColor="#FFF" android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/tabTaxi" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Taxi" android:gravity="center" android:padding="8dp" android:textColor="#888" android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/tabMotorcycle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Motor" android:gravity="center" android:padding="8dp" android:textColor="#888" android:clickable="true" android:focusable="true"/>
+            </LinearLayout>
+
+            <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:id="@+id/routeDistance" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Select points to calculate fare" android:gravity="center" android:layout_marginBottom="8dp"/>
+                    <LinearLayout android:id="@+id/fareDetailsContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="#F0F7FF" android:padding="12dp" android:visibility="invisible">
+                        <TextView android:id="@+id/fareCalculation" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="13sp"/>
+                        <TextView android:id="@+id/totalFareText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="22sp" android:textStyle="bold" android:textColor="#008DFF"/>
+                        <View android:id="@+id/divider" android:layout_width="match_parent" android:layout_height="1dp" android:background="#DDD" android:layout_marginVertical="8dp" android:visibility="gone"/>
+                        <TextView android:id="@+id/jeepneyRoutesTitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/connecting_jeepneys" android:textStyle="bold" android:visibility="gone"/>
+                        <TextView android:id="@+id/jeepneyRoutesText" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Searched Location Info (Floating) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/locationInfoCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_margin="16dp"
+        android:visibility="gone"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="8dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+            <TextView android:id="@+id/placeName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Place Name" android:textSize="18sp" android:textStyle="bold" android:textColor="#333333"/>
+            <Button android:id="@+id/setDestinationButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Set as Destination" android:backgroundTint="#008DFF" android:textColor="@android:color/white"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+</RelativeLayout>
