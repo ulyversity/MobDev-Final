@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FINAL PROJECT</string>
+    <string name="app_name">Cebu Tourism Map</string>
     <string name="retry">Retry</string>
     <string name="confirm_pickup">Confirm Pickup</string>
     <string name="confirm_destination">Confirm Destination</string>
@@ -8,4 +8,17 @@
     <string name="total_fare">Total: ₱%.2f</string>
     <string name="search_hint">Search places in Cebu&#8230;</string>
     <string name="connecting_jeepneys">Suggested Jeepney Routes:</string>
+    <string name="taxi_estimates">Estimated Taxi Service Rates:</string>
+    <string name="motor_estimates">Estimated Motor Service Rates:</string>
+    <string name="jeepney_lines_title">Direct Cebu Jeepney Lines:</string>
+    <string name="querying_transit">Querying transit data for Cebu...</string>
+    <string name="no_jeepneys">No direct jeepneys found connecting these points. Transfer may be required.</string>
+    <string name="transit_error">Error reading transit data.</string>
+    <string name="transit_unavailable">Transit data currently unavailable.</string>
+    <string name="connection_error">Unable to connect to transit server.</string>
+    <string name="pin_dest_hint">Pin destination to calculate</string>
+    <string name="pickup_confirmed">Pickup confirmed! Now pin your destination.</string>
+    <string name="destination_locked">Destination is already locked.</string>
+    <string name="destination_confirmed">Destination is already confirmed.</string>
+    <string name="route_confirmed_reset">Route confirmed. Reset to search again.</string>
 </resources>
