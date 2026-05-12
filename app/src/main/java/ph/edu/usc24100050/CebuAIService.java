@@ -57,7 +57,87 @@ public class CebuAIService {
         void onSuccess(String response);
         void onError(String errorMessage);
     }
+    // ─── Structured JSON itinerary for PlannerActivity ────────────────────────
+    private static final String ITINERARY_JSON_PROMPT =
+            "You are a Cebu travel planner. Respond ONLY with a valid JSON array. " +
+                    "No explanation, no markdown, no code fences. Just the raw JSON array.\n\n" +
+                    "Each item must follow this exact structure:\n" +
+                    "[{\"day\":1,\"time\":\"09:00 AM\",\"place_name\":\"Magellan's Cross\"," +
+                    "\"place_type\":\"HISTORICAL\",\"duration_minutes\":45," +
+                    "\"notes\":\"Short tip or cost info\",\"latitude\":10.2929,\"longitude\":123.9018}]\n\n" +
+                    "place_type must be one of: HISTORICAL, BEACH, FOOD, NATURE, SHOPPING, RELIGIOUS\n" +
+                    "Include 4-6 items per day. Only real places in Cebu with accurate coordinates.";
 
+    public void generateItineraryJson(String userMessage, AICallback callback) {
+        executor.execute(() -> {
+            List<String> keysToTry = new ArrayList<>();
+            try {
+                String saved = getEncryptedPrefs(context).getString(KEY_NAME, "");
+                if (!saved.isEmpty()) keysToTry.add(saved);
+            } catch (Exception ignored) {}
+            keysToTry.add(PRIMARY_KEY);
+            if (!BACKUP_KEY.isEmpty()) keysToTry.add(BACKUP_KEY);
+
+            String lastError = "No API keys available.";
+
+            for (String apiKey : keysToTry) {
+                if (apiKey == null || apiKey.isEmpty()) continue;
+                try {
+                    JSONArray messages = new JSONArray();
+                    messages.put(new JSONObject()
+                            .put("role", "system")
+                            .put("content", ITINERARY_JSON_PROMPT));
+                    messages.put(new JSONObject()
+                            .put("role", "user")
+                            .put("content", userMessage));
+
+                    JSONObject requestBody = new JSONObject()
+                            .put("model", MODEL)
+                            .put("messages", messages)
+                            .put("max_tokens", 2048);
+
+                    Request request = new Request.Builder()
+                            .url(API_URL)
+                            .addHeader("Content-Type", "application/json")
+                            .addHeader("Authorization", "Bearer " + apiKey)
+                            .post(RequestBody.create(
+                                    requestBody.toString(),
+                                    MediaType.parse("application/json")))
+                            .build();
+
+                    Response response = client.newCall(request).execute();
+                    int statusCode = response.code();
+                    String responseBody = response.body() != null ? response.body().string() : "";
+
+                    if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
+                        lastError = "Key failed (" + statusCode + ")";
+                        continue;
+                    }
+                    if (!response.isSuccessful()) {
+                        postError(callback, "API error " + statusCode + ". Please try again.");
+                        return;
+                    }
+
+                    JSONObject json = new JSONObject(responseBody);
+                    String reply = json.getJSONArray("choices")
+                            .getJSONObject(0)
+                            .getJSONObject("message")
+                            .getString("content");
+
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(reply));
+                    return;
+
+                } catch (Exception e) {
+                    lastError = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                    if (lastError.contains("Unable to resolve host")) {
+                        postError(callback, "No internet connection. Please check your network.");
+                        return;
+                    }
+                }
+            }
+            postError(callback, "All API keys failed. Last error: " + lastError);
+        });
+    }
     public CebuAIService(Context context) {
         this.context = context.getApplicationContext();
         this.client = new OkHttpClient.Builder()
