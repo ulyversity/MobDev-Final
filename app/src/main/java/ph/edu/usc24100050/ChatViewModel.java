@@ -57,8 +57,12 @@ public class ChatViewModel extends AndroidViewModel {
                     if (items != null && !items.isEmpty()) {
                         // ✅ Write to DB on background thread
                         AppDatabase.databaseWriteExecutor.execute(() -> {
-                            itineraryDao.clearAll();
-                            itineraryDao.insertAll(items);
+                            try {
+                                itineraryDao.clearAll();
+                                itineraryDao.insertAll(items);
+                            } catch (Exception e) {
+                                Log.e("ChatViewModel", "DB transaction failed: " + e.getMessage());
+                            }
                         });
                         postMessage("assistant",
                                 "✅ Done! Your " + getMaxDay(items) + "-day itinerary is ready. " +
@@ -117,14 +121,18 @@ public class ChatViewModel extends AndroidViewModel {
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject obj = arr.getJSONObject(i);
                 ItineraryItem item = new ItineraryItem();
-                item.setDay(obj.getInt("day"));
-                item.setTime(obj.getString("time"));
-                item.setPlaceName(obj.getString("place_name"));
-                item.setPlaceType(obj.getString("place_type"));
-                item.setDurationMinutes(obj.getInt("duration_minutes"));
-                item.setNotes(obj.getString("notes"));
-                item.setLatitude(obj.getDouble("latitude"));
-                item.setLongitude(obj.getDouble("longitude"));
+                item.setDay(obj.optInt("day", 1));
+                item.setTime(obj.optString("time", ""));
+                item.setPlaceName(obj.optString("place_name", ""));
+                item.setPlaceType(obj.optString("place_type", ""));
+                item.setDurationMinutes(obj.optInt("duration_minutes", 60));
+                item.setNotes(obj.optString("notes", ""));
+                item.setLatitude(obj.optDouble("latitude", 10.3157));
+                item.setLongitude(obj.optDouble("longitude", 123.8854));
+                
+                // Set task for compatibility with ItineraryAdapter
+                item.setTask(item.getPlaceName() + (item.getNotes().isEmpty() ? "" : ": " + item.getNotes()));
+                
                 items.add(item);
             }
             return items;
