@@ -28,9 +28,14 @@ public class CebuAIService {
 
     private static final String TAG = "CEBU_DEBUG";
     private static final String PREFS_NAME = "cebu_app_prefs";
-    private static final String KEY_NAME = "gemini_api_key";
-    private static final String API_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+    private static final String KEY_NAME = "groq_api_key";
+
+    // Groq API keys (gsk_...)
+    private static final String PRIMARY_KEY = "";
+    private static final String BACKUP_KEY  = ""; // add a second Groq key here if you have one
+
+    private static final String API_URL = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String MODEL   = "llama-3.3-70b-versatile"; // fast & free on Groq
 
     private final Context context;
     private final OkHttpClient client;
@@ -52,7 +57,87 @@ public class CebuAIService {
         void onSuccess(String response);
         void onError(String errorMessage);
     }
+    // ─── Structured JSON itinerary for PlannerActivity ────────────────────────
+    private static final String ITINERARY_JSON_PROMPT =
+            "You are a Cebu travel planner. Respond ONLY with a valid JSON array. " +
+                    "No explanation, no markdown, no code fences. Just the raw JSON array.\n\n" +
+                    "Each item must follow this exact structure:\n" +
+                    "[{\"day\":1,\"time\":\"09:00 AM\",\"place_name\":\"Magellan's Cross\"," +
+                    "\"place_type\":\"HISTORICAL\",\"duration_minutes\":45," +
+                    "\"notes\":\"Short tip or cost info\",\"latitude\":10.2929,\"longitude\":123.9018}]\n\n" +
+                    "place_type must be one of: HISTORICAL, BEACH, FOOD, NATURE, SHOPPING, RELIGIOUS\n" +
+                    "Include 4-6 items per day. Only real places in Cebu with accurate coordinates.";
 
+    public void generateItineraryJson(String userMessage, AICallback callback) {
+        executor.execute(() -> {
+            List<String> keysToTry = new ArrayList<>();
+            try {
+                String saved = getEncryptedPrefs(context).getString(KEY_NAME, "");
+                if (!saved.isEmpty()) keysToTry.add(saved);
+            } catch (Exception ignored) {}
+            keysToTry.add(PRIMARY_KEY);
+            if (!BACKUP_KEY.isEmpty()) keysToTry.add(BACKUP_KEY);
+
+            String lastError = "No API keys available.";
+
+            for (String apiKey : keysToTry) {
+                if (apiKey == null || apiKey.isEmpty()) continue;
+                try {
+                    JSONArray messages = new JSONArray();
+                    messages.put(new JSONObject()
+                            .put("role", "system")
+                            .put("content", ITINERARY_JSON_PROMPT));
+                    messages.put(new JSONObject()
+                            .put("role", "user")
+                            .put("content", userMessage));
+
+                    JSONObject requestBody = new JSONObject()
+                            .put("model", MODEL)
+                            .put("messages", messages)
+                            .put("max_tokens", 2048);
+
+                    Request request = new Request.Builder()
+                            .url(API_URL)
+                            .addHeader("Content-Type", "application/json")
+                            .addHeader("Authorization", "Bearer " + apiKey)
+                            .post(RequestBody.create(
+                                    requestBody.toString(),
+                                    MediaType.parse("application/json")))
+                            .build();
+
+                    Response response = client.newCall(request).execute();
+                    int statusCode = response.code();
+                    String responseBody = response.body() != null ? response.body().string() : "";
+
+                    if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
+                        lastError = "Key failed (" + statusCode + ")";
+                        continue;
+                    }
+                    if (!response.isSuccessful()) {
+                        postError(callback, "API error " + statusCode + ". Please try again.");
+                        return;
+                    }
+
+                    JSONObject json = new JSONObject(responseBody);
+                    String reply = json.getJSONArray("choices")
+                            .getJSONObject(0)
+                            .getJSONObject("message")
+                            .getString("content");
+
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(reply));
+                    return;
+
+                } catch (Exception e) {
+                    lastError = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                    if (lastError.contains("Unable to resolve host")) {
+                        postError(callback, "No internet connection. Please check your network.");
+                        return;
+                    }
+                }
+            }
+            postError(callback, "All API keys failed. Last error: " + lastError);
+        });
+    }
     public CebuAIService(Context context) {
         this.context = context.getApplicationContext();
         this.client = new OkHttpClient.Builder()
@@ -64,134 +149,81 @@ public class CebuAIService {
 
     public void chat(String userMessage, List<Message> history, AICallback callback) {
         executor.execute(() -> {
+            // Build key list: saved key first, then PRIMARY, then BACKUP
+            List<String> keysToTry = new ArrayList<>();
             try {
-                // Step 1: Check API key
-                String apiKey = getApiKeyInternal();
-                Log.d(TAG, "chat() called with message: " + userMessage);
-                Log.d(TAG, "API key length: " + apiKey.length());
+                String saved = getEncryptedPrefs(context).getString(KEY_NAME, "");
+                if (!saved.isEmpty()) keysToTry.add(saved);
+            } catch (Exception ignored) {}
+            keysToTry.add(PRIMARY_KEY);
+            if (!BACKUP_KEY.isEmpty()) keysToTry.add(BACKUP_KEY);
 
-                if (apiKey.isEmpty()) {
-                    Log.e(TAG, "API key is empty!");
-                    postError(callback, "API key not set. Please go back and save your Gemini API key.");
-                    return;
-                }
+            String lastError = "No API keys available.";
 
-                // Step 2: Build contents array
-                JSONArray contents = new JSONArray();
+            for (String apiKey : keysToTry) {
+                if (apiKey == null || apiKey.isEmpty()) continue;
 
-                // Add conversation history
-                for (Message msg : history) {
-                    JSONObject part = new JSONObject();
-                    part.put("text", msg.getContent());
+                try {
+                    Log.d(TAG, "Trying key ending in: ..." + apiKey.substring(apiKey.length() - 4));
 
-                    JSONArray parts = new JSONArray();
-                    parts.put(part);
+                    JSONObject requestBody = buildRequestBody(userMessage, history);
 
-                    JSONObject content = new JSONObject();
-                    // Gemini uses "user" and "model" (not "assistant")
-                    String role = msg.getRole().equals("assistant") ? "model" : "user";
-                    content.put("role", role);
-                    content.put("parts", parts);
-                    contents.put(content);
-                }
+                    Request request = new Request.Builder()
+                            .url(API_URL)
+                            .addHeader("Content-Type", "application/json")
+                            .addHeader("Authorization", "Bearer " + apiKey)
+                            .post(RequestBody.create(
+                                    requestBody.toString(),
+                                    MediaType.parse("application/json")))
+                            .build();
 
-                JSONObject userPart = new JSONObject();
-                userPart.put("text", userMessage);
+                    Response response = client.newCall(request).execute();
+                    int statusCode = response.code();
+                    String responseBody = response.body() != null ? response.body().string() : "";
 
-                JSONArray userParts = new JSONArray();
-                userParts.put(userPart);
+                    Log.d(TAG, "Status: " + statusCode);
 
-                JSONObject userContent = new JSONObject();
-                userContent.put("role", "user");
-                userContent.put("parts", userParts);
-                contents.put(userContent);
-
-                // Step 3: Build system instruction (Gemini format)
-                JSONObject systemPart = new JSONObject();
-                systemPart.put("text", SYSTEM_PROMPT);
-
-                JSONArray systemParts = new JSONArray();
-                systemParts.put(systemPart);
-
-                JSONObject systemInstruction = new JSONObject();
-                systemInstruction.put("parts", systemParts);
-
-                // Step 4: Build full request body
-                JSONObject requestBody = new JSONObject();
-                requestBody.put("contents", contents);
-                requestBody.put("systemInstruction", systemInstruction);
-
-                Log.d(TAG, "Sending request to Gemini API...");
-
-                // Step 5: Make HTTP request
-                String urlWithKey = API_URL + "?key=" + apiKey;
-
-                RequestBody body = RequestBody.create(
-                        requestBody.toString(),
-                        MediaType.parse("application/json")
-                );
-
-                Request request = new Request.Builder()
-                        .url(urlWithKey)
-                        .addHeader("Content-Type", "application/json")
-                        .post(body)
-                        .build();
-
-                // Step 6: Execute and read response
-                Response response = client.newCall(request).execute();
-                int statusCode = response.code();
-                String responseBody = response.body() != null ? response.body().string() : "";
-
-                Log.d(TAG, "Response status code: " + statusCode);
-                Log.d(TAG, "Response body: " + responseBody);
-
-                // Step 7: Handle HTTP errors
-                if (!response.isSuccessful()) {
-                    String errorMsg;
-                    switch (statusCode) {
-                        case 400:
-                            errorMsg = "Bad request. Check your API key format.";
-                            break;
-                        case 403:
-                            errorMsg = "API key invalid or not authorized. Check your Gemini key.";
-                            break;
-                        case 429:
-                            errorMsg = "Too many requests. Please wait a moment and try again.";
-                            break;
-                        case 500:
-                            errorMsg = "Gemini server error. Please try again in a moment.";
-                            break;
-                        default:
-                            errorMsg = "API error " + statusCode + ": " + responseBody;
+                    // Key-related errors — try next key
+                    if (statusCode == 401 || statusCode == 403 || statusCode == 429) {
+                        lastError = "Key failed (" + statusCode + "), trying next key...";
+                        Log.w(TAG, lastError);
+                        continue;
                     }
-                    Log.e(TAG, "HTTP error: " + errorMsg);
-                    postError(callback, errorMsg);
-                    return;
+
+                    // Other HTTP errors — no point retrying
+                    if (!response.isSuccessful()) {
+                        Log.e(TAG, "API error: " + statusCode + " - " + responseBody);
+                        postError(callback, "API error " + statusCode + ". Please try again.");
+                        return;
+                    }
+
+                    // Parse Groq/OpenAI-style response
+                    JSONObject json = new JSONObject(responseBody);
+                    String reply = json
+                            .getJSONArray("choices")
+                            .getJSONObject(0)
+                            .getJSONObject("message")
+                            .getString("content");
+
+                    Log.d(TAG, "Success! Reply length: " + reply.length());
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(reply));
+                    return; // Done — stop trying more keys
+
+                } catch (Exception e) {
+                    lastError = e.getMessage() != null ? e.getMessage() : "Unknown error";
+                    Log.e(TAG, "Key attempt failed: " + lastError);
+
+                    if (lastError.contains("Unable to resolve host")) {
+                        postError(callback, "No internet connection. Please check your network.");
+                        return;
+                    }
+                    // Otherwise try the next key
                 }
-
-                JSONObject json = new JSONObject(responseBody);
-
-                if (!json.has("candidates")) {
-                    Log.e(TAG, "Response missing 'candidates' field: " + responseBody);
-                    postError(callback, "Unexpected response from Gemini. Try again.");
-                    return;
-                }
-
-                String reply = json
-                        .getJSONArray("candidates")
-                        .getJSONObject(0)
-                        .getJSONObject("content")
-                        .getJSONArray("parts")
-                        .getJSONObject(0)
-                        .getString("text");
-
-                Log.d(TAG, "Success! Reply length: " + reply.length());
-                new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(reply));
-
-            } catch (Exception e) {
-                Log.e(TAG, "Exception in chat(): " + e.getMessage(), e);
-                postError(callback, "Error: " + e.getMessage());
             }
+
+            // All keys exhausted
+            Log.e(TAG, "All keys failed. Last error: " + lastError);
+            postError(callback, "All API keys failed. Last error: " + lastError);
         });
     }
 
@@ -232,13 +264,38 @@ public class CebuAIService {
         chat(prompt, new ArrayList<>(), callback);
     }
 
+    private JSONObject buildRequestBody(String userMessage, List<Message> history) throws Exception {
+        JSONArray messages = new JSONArray();
+
+        // System prompt as first message
+        messages.put(new JSONObject()
+                .put("role", "system")
+                .put("content", SYSTEM_PROMPT));
+
+        // Conversation history
+        for (Message msg : history) {
+            messages.put(new JSONObject()
+                    .put("role", msg.getRole()) // "user" or "assistant" — no conversion needed
+                    .put("content", msg.getContent()));
+        }
+
+        // Current user message
+        messages.put(new JSONObject()
+                .put("role", "user")
+                .put("content", userMessage));
+
+        return new JSONObject()
+                .put("model", MODEL)
+                .put("messages", messages)
+                .put("max_tokens", 1024);
+    }
+
     public static void storeApiKey(Context context, String apiKey) {
         try {
-            Log.d(TAG, "Storing Gemini API key, length: " + apiKey.trim().length());
             getEncryptedPrefs(context).edit()
                     .putString(KEY_NAME, apiKey.trim())
                     .apply();
-            Log.d(TAG, "Gemini API key stored successfully.");
+            Log.d(TAG, "API key stored successfully.");
         } catch (Exception e) {
             Log.e(TAG, "Failed to store API key: " + e.getMessage(), e);
         }
@@ -246,17 +303,11 @@ public class CebuAIService {
 
     public static String getApiKey(Context context) {
         try {
-            String key = getEncryptedPrefs(context).getString(KEY_NAME, "");
-            Log.d(TAG, "getApiKey(context) called, key length: " + key.length());
-            return key;
+            return getEncryptedPrefs(context).getString(KEY_NAME, "");
         } catch (Exception e) {
             Log.e(TAG, "Failed to retrieve API key: " + e.getMessage(), e);
             return "";
         }
-    }
-
-    private String getApiKeyInternal() {
-        return getApiKey(context);
     }
 
     private static SharedPreferences getEncryptedPrefs(Context context) throws Exception {
@@ -268,8 +319,7 @@ public class CebuAIService {
                 PREFS_NAME,
                 masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        );
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
     }
 
     private void postError(AICallback callback, String message) {

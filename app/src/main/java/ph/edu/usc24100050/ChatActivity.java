@@ -1,30 +1,39 @@
 package ph.edu.usc24100050;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
+import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.interpolator.view.animation.FastOutSlowInInterpolator;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import ph.edu.usc24100050.Adapter.ItineraryAdapter;
+import ph.edu.usc24100050.Model.ItineraryItem;
 
 public class ChatActivity extends AppCompatActivity {
 
+    private ImageView mascotView;
+    private ObjectAnimator idleAnim;
     private ChatViewModel viewModel;
     private MessageAdapter messageAdapter;
-    private ItineraryAdapter itineraryAdapter;   // NEW
-
+    private ItineraryAdapter itineraryAdapter;
     private RecyclerView recyclerView;
-    private RecyclerView rvItinerary;            // NEW
-    private TextView tvItineraryEmpty;           // NEW
-
+    private RecyclerView rvItinerary;
+    private TextView tvItineraryEmpty;
     private EditText inputField;
     private Button sendButton;
     private ProgressBar progressBar;
@@ -34,11 +43,6 @@ public class ChatActivity extends AppCompatActivity {
             "3-day itinerary", "Beaches near Cebu City"
     };
 
-    // NEW — these chips trigger itinerary generation instead of regular chat
-    private final String[] itineraryTriggers = {
-            "3-day itinerary", "1-day itinerary", "Weekend in Cebu"
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,26 +50,27 @@ public class ChatActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(ChatViewModel.class);
 
+        mascotView       = findViewById(R.id.mascotView);
         recyclerView     = findViewById(R.id.recyclerView);
         inputField       = findViewById(R.id.inputField);
         sendButton       = findViewById(R.id.sendButton);
         progressBar      = findViewById(R.id.progressBar);
-        rvItinerary      = findViewById(R.id.rvItinerary);       // NEW
-        tvItineraryEmpty = findViewById(R.id.tvItineraryEmpty);  // NEW
+        rvItinerary      = findViewById(R.id.rvItinerary);
+        tvItineraryEmpty = findViewById(R.id.tvItineraryEmpty);
 
-        // Chat RecyclerView (existing)
         messageAdapter = new MessageAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(messageAdapter);
 
-        // Itinerary RecyclerView (NEW)
         itineraryAdapter = new ItineraryAdapter();
         rvItinerary.setLayoutManager(new LinearLayoutManager(this));
         rvItinerary.setAdapter(itineraryAdapter);
 
+        // waits for layout to finish before animating
+        mascotView.post(this::startIdleAnim);
+
         setupChips();
 
-        // Observe chat messages (unchanged)
         viewModel.getMessages().observe(this, messages -> {
             messageAdapter.setMessages(messages);
             if (!messages.isEmpty()) {
@@ -73,13 +78,34 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        // Observe loading state (unchanged)
+        viewModel.navigateToPlanner.observe(this, items -> {
+            if (items == null || items.isEmpty()) return;
+
+            Intent intent = new Intent(ChatActivity.this, PlannerActivity.class);
+            intent.putExtra("from_chat", true);
+
+            // Calculate max day safely
+            int maxDay = 1;
+            for (ItineraryItem item : items) {
+                if (item.getDay() > maxDay) maxDay = item.getDay();
+            }
+            intent.putExtra("day_count", maxDay);
+
+            startActivity(intent);
+            // Reset so re-observe doesn't re-trigger navigation
+            viewModel.navigateToPlanner.setValue(null);
+        });
+
         viewModel.getIsLoading().observe(this, loading -> {
             progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
             sendButton.setEnabled(!loading);
+            if (loading) {
+                playThinkingAnim();
+            } else {
+                mascotView.post(this::startIdleAnim);
+            }
         });
 
-        // NEW — observe itinerary items from Room
         viewModel.itineraryItems.observe(this, items -> {
             if (items == null || items.isEmpty()) {
                 rvItinerary.setVisibility(View.GONE);
@@ -88,10 +114,10 @@ public class ChatActivity extends AppCompatActivity {
                 tvItineraryEmpty.setVisibility(View.GONE);
                 rvItinerary.setVisibility(View.VISIBLE);
                 itineraryAdapter.setItems(items);
+                playHappyAnim();
             }
         });
 
-        // Send button (unchanged)
         sendButton.setOnClickListener(v -> sendMessage());
 
         inputField.setOnEditorActionListener((v, actionId, event) -> {
@@ -104,37 +130,71 @@ public class ChatActivity extends AppCompatActivity {
         String text = inputField.getText().toString().trim();
         if (text.isEmpty()) return;
 
-        // NEW — if the message sounds like an itinerary request, generate structured plan
-        if (isItineraryRequest(text)) {
-            viewModel.generateItinerary(text);
-        } else {
-            viewModel.sendMessage(text);
-        }
+        // Unified sendMessage handles both chat and itinerary logic
+        viewModel.sendMessage(text);
         inputField.setText("");
-    }
-
-    // NEW — detect itinerary intent keywords
-    private boolean isItineraryRequest(String text) {
-        String lower = text.toLowerCase();
-        return lower.contains("itinerary") || lower.contains("plan my")
-                || lower.contains("day trip") || lower.contains("schedule");
     }
 
     private void setupChips() {
         LinearLayout chipContainer = findViewById(R.id.chipContainer);
+        if (chipContainer == null) return;
+
         for (String suggestion : suggestions) {
             com.google.android.material.chip.Chip chip =
                     new com.google.android.material.chip.Chip(this);
             chip.setText(suggestion);
-            chip.setOnClickListener(v -> {
-                // NEW — route itinerary chips to generateItinerary()
-                if (isItineraryRequest(suggestion)) {
-                    viewModel.generateItinerary(suggestion);
-                } else {
-                    viewModel.sendMessage(suggestion);
-                }
-            });
+            chip.setOnClickListener(v -> viewModel.sendMessage(suggestion));
             chipContainer.addView(chip);
         }
+    }
+
+    private void startIdleAnim() {
+        if (mascotView == null) return;
+        if (idleAnim != null) idleAnim.cancel();
+        idleAnim = ObjectAnimator.ofFloat(mascotView, "translationY", 0f, -14f);
+        idleAnim.setDuration(1600);
+        idleAnim.setRepeatMode(ValueAnimator.REVERSE);
+        idleAnim.setRepeatCount(ValueAnimator.INFINITE);
+        idleAnim.setInterpolator(new FastOutSlowInInterpolator());
+        idleAnim.start();
+    }
+
+    private void playThinkingAnim() {
+        if (mascotView == null) return;
+        if (idleAnim != null) idleAnim.cancel();
+        idleAnim = ObjectAnimator.ofFloat(mascotView, "translationY", 0f, -6f);
+        idleAnim.setDuration(2200);
+        idleAnim.setRepeatMode(ValueAnimator.REVERSE);
+        idleAnim.setRepeatCount(ValueAnimator.INFINITE);
+        idleAnim.setInterpolator(new FastOutSlowInInterpolator());
+        idleAnim.start();
+    }
+
+    private void playHappyAnim() {
+        if (mascotView == null) return;
+        if (idleAnim != null) idleAnim.cancel();
+
+        ObjectAnimator wiggle = ObjectAnimator.ofFloat(mascotView, "rotation", 0f, -10f, 10f, -7f, 7f, 0f);
+        wiggle.setDuration(600);
+        wiggle.setRepeatCount(2);
+
+        ObjectAnimator scaleX = ObjectAnimator.ofFloat(mascotView, "scaleX", 1f, 1.15f, 1f);
+        ObjectAnimator scaleY = ObjectAnimator.ofFloat(mascotView, "scaleY", 1f, 1.15f, 1f);
+        scaleX.setDuration(600);
+        scaleY.setDuration(600);
+        scaleX.setRepeatCount(2);
+        scaleY.setRepeatCount(2);
+        scaleX.setInterpolator(new OvershootInterpolator());
+        scaleY.setInterpolator(new OvershootInterpolator());
+
+        AnimatorSet happy = new AnimatorSet();
+        happy.playTogether(wiggle, scaleX, scaleY);
+        happy.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                mascotView.post(() -> startIdleAnim());
+            }
+        });
+        happy.start();
     }
 }

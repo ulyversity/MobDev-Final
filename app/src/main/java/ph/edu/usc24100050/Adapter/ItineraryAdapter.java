@@ -34,8 +34,8 @@ public class ItineraryAdapter extends RecyclerView.Adapter<ItineraryAdapter.VH> 
     @Override
     public void onBindViewHolder(@NonNull VH holder, int position) {
         ItineraryItem item = items.get(position);
-        holder.tvTime.setText(item.time);
-        holder.tvTask.setText(item.task);
+        holder.tvTime.setText(item.getTime());
+        holder.tvTask.setText(item.getTask());
     }
 
     @Override
