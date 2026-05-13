@@ -42,7 +42,7 @@ public class PlannerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_quick_planner);
 
         rvGetaways        = findViewById(R.id.rvGetaways);
-       
+
 
         rvGetaways.setLayoutManager(new LinearLayoutManager(this));
         rvUmikoItinerary.setLayoutManager(new LinearLayoutManager(this));
