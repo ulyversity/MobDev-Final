@@ -21,4 +21,6 @@
     <string name="destination_locked">Destination is already locked.</string>
     <string name="destination_confirmed">Destination is already confirmed.</string>
     <string name="route_confirmed_reset">Route confirmed. Reset to search again.</string>
+    <string name="destination_too_far">Destination is too far!</string>
+    <string name="price_depends_on_driver">Prices depend on the driver.</string>
 </resources>
