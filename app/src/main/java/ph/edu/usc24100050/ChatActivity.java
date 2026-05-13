@@ -33,6 +33,8 @@ public class ChatActivity extends AppCompatActivity {
     private ItineraryAdapter itineraryAdapter;
     private RecyclerView recyclerView;
     private RecyclerView rvItinerary;
+    private View itineraryContainer;
+    private View btnShowPlan;
     private TextView tvItineraryEmpty;
     private EditText inputField;
     private Button sendButton;
@@ -50,14 +52,36 @@ public class ChatActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(ChatViewModel.class);
 
-        mascotView       = findViewById(R.id.mascotView);
         recyclerView     = findViewById(R.id.recyclerView);
         inputField       = findViewById(R.id.inputField);
         sendButton       = findViewById(R.id.sendButton);
         progressBar      = findViewById(R.id.progressBar);
         rvItinerary      = findViewById(R.id.rvItinerary);
+        itineraryContainer = findViewById(R.id.itineraryContainer);
+        btnShowPlan      = findViewById(R.id.btnShowPlan);
         tvItineraryEmpty = findViewById(R.id.tvItineraryEmpty);
+        mascotView       = findViewById(R.id.mascotView);
 
+        mascotView.setOnClickListener(v -> playHappyAnim());
+
+        findViewById(R.id.btnMinimizeItinerary).setOnClickListener(v -> {
+            itineraryContainer.setVisibility(View.GONE);
+            btnShowPlan.setVisibility(View.VISIBLE);
+            updateWelcomeVisibility();
+        });
+
+        findViewById(R.id.btnClearItinerary).setOnClickListener(v -> {
+            viewModel.clearItinerary();
+            itineraryContainer.setVisibility(View.GONE);
+            btnShowPlan.setVisibility(View.GONE);
+            updateWelcomeVisibility();
+        });
+
+        btnShowPlan.setOnClickListener(v -> {
+            itineraryContainer.setVisibility(View.VISIBLE);
+            btnShowPlan.setVisibility(View.GONE);
+            updateWelcomeVisibility();
+        });
         messageAdapter = new MessageAdapter();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(messageAdapter);
@@ -73,6 +97,7 @@ public class ChatActivity extends AppCompatActivity {
 
         viewModel.getMessages().observe(this, messages -> {
             messageAdapter.setMessages(messages);
+            updateWelcomeVisibility();
             if (!messages.isEmpty()) {
                 recyclerView.smoothScrollToPosition(messages.size() - 1);
             }
@@ -107,15 +132,19 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         viewModel.itineraryItems.observe(this, items -> {
-            if (items == null || items.isEmpty()) {
-                rvItinerary.setVisibility(View.GONE);
-                tvItineraryEmpty.setVisibility(View.VISIBLE);
+            boolean hasItems = items != null && !items.isEmpty();
+            if (!hasItems) {
+                itineraryContainer.setVisibility(View.GONE);
+                btnShowPlan.setVisibility(View.GONE);
             } else {
-                tvItineraryEmpty.setVisibility(View.GONE);
-                rvItinerary.setVisibility(View.VISIBLE);
+                // Only force visible if it was previously completely empty/gone
+                if (itineraryContainer.getVisibility() == View.GONE && btnShowPlan.getVisibility() == View.GONE) {
+                    itineraryContainer.setVisibility(View.VISIBLE);
+                }
                 itineraryAdapter.setItems(items);
-                playHappyAnim();
+                // Don't play happy anim on every DB refresh, only when it's first populated
             }
+            updateWelcomeVisibility();
         });
 
         sendButton.setOnClickListener(v -> sendMessage());
@@ -133,6 +162,18 @@ public class ChatActivity extends AppCompatActivity {
         // Unified sendMessage handles both chat and itinerary logic
         viewModel.sendMessage(text);
         inputField.setText("");
+    }
+
+    private void updateWelcomeVisibility() {
+        boolean noMessages = viewModel.getMessages().getValue() == null || viewModel.getMessages().getValue().isEmpty();
+        boolean itineraryHiddenOrEmpty = (itineraryContainer.getVisibility() != View.VISIBLE) 
+                || (viewModel.itineraryItems.getValue() == null || viewModel.itineraryItems.getValue().isEmpty());
+
+        if (noMessages && itineraryHiddenOrEmpty) {
+            tvItineraryEmpty.setVisibility(View.VISIBLE);
+        } else {
+            tvItineraryEmpty.setVisibility(View.GONE);
+        }
     }
 
     private void setupChips() {
