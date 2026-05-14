@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import ph.edu.usc24100050.Adapter.CategoryAdapter;
 import ph.edu.usc24100050.Adapter.CitiesAdapter;
 import ph.edu.usc24100050.ItirenaryPlannerCore.Groq;
 import ph.edu.usc24100050.ItirenaryPlannerCore.ItineraryPlanner;
@@ -45,20 +46,20 @@ public class ChoosePlaceActivity extends AppCompatActivity {
         LLMAPI groq = new Groq();
         ItineraryPlanner planner = new ItineraryPlanner(groq);
 
-        planner.createUserPreferencePlan(prompt)
-                .thenAccept(userPref -> {
-                    try {
-                        Log.d("HELLOWORLD", new ObjectMapper().writeValueAsString(userPref));
 
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
+        planner.createActivityRoot(prompt)
+                .thenAccept(activityRoot -> {
+                            try {
+                                Log.d("HELLOWORLD", new ObjectMapper().writeValueAsString(activityRoot));
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
 
-                    CitiesAdapter adapter = new CitiesAdapter(ChoosePlaceActivity.this, userPref, prompt);
-                    runOnUiThread(() -> {
-                        rvCities.setAdapter(adapter);
-                        txtActiivtyName.setText(userPref.getActivityName());
-                    });
-                });
+                            CategoryAdapter adapter = new CategoryAdapter(ChoosePlaceActivity.this, activityRoot.getCategories(), activityRoot.getActivity());
+                            runOnUiThread(() -> {
+                                rvCities.setAdapter(adapter);
+                                txtActiivtyName.setText(activityRoot.getActivity().toUpperCase());
+                            });
+                        });
     }
 }

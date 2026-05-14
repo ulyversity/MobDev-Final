@@ -34,9 +34,6 @@ public class ItineraryPlannerActivity extends AppCompatActivity {
             return insets;
         });
 
-
-
-
         txtPrompt = findViewById(R.id.txtPrompt);
         btnCreatePlan = findViewById(R.id.btnCreatePlan);
         lblName = findViewById(R.id.lblName);

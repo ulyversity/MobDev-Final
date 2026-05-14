@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 
 import java.util.concurrent.CompletableFuture;
 
+import ph.edu.usc24100050.Model.ActivityRoot;
 import ph.edu.usc24100050.Model.Itinerary;
 import ph.edu.usc24100050.Model.UserItineraryPreference;
 
@@ -21,6 +22,65 @@ public class ItineraryPlanner {
     {
         this.ai = ai;
     }
+
+    public ActivityRoot createActivityRootResponse(String rawResponseText)
+    {
+        Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            JsonNode root = mapper.readTree(rawResponseText);
+            String contentJson = root
+                    .get("choices")
+                    .get(0)
+                    .get("message")
+                    .get("content")
+                    .asText();
+
+            JsonNode userPrefNode = mapper.readTree(contentJson);
+            Log.d("HELLOWORLD", userPrefNode.toString());
+            ActivityRoot activityRoot = mapper.treeToValue(userPrefNode, ActivityRoot.class);
+            Log.d("HELLOWORLD", activityRoot.getActivity());
+            Log.d("HELLOWORLD", activityRoot.getCategories().get(0).getCategoryName());
+            Log.d("HELLOWORLD", activityRoot.getCategories().get(0).getCategoryList().get(0).getTitle());
+
+            return activityRoot;
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            Log.e("HELLOWORLDERROR", e.getMessage());
+            return null;
+        }
+    }
+
+    public String createBetterItineraryResponse(String rawResponseText)
+    {
+        Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
+        ObjectMapper mapper = new ObjectMapper();
+
+        try {
+            Log.d("HELLOWORLD", rawResponseText);
+
+            JsonNode root = mapper.readTree(rawResponseText);
+            String contentJson = root
+                    .get("choices")
+                    .get(0)
+                    .get("message")
+                    .get("content")
+                    .asText();
+
+            Log.d("HELLOWORLD", contentJson);
+
+            return contentJson;
+
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+            Log.e("HELLOWORLDERROR", e.getMessage());
+            return null;
+        }
+    }
+
     public Itinerary createItinerary(String rawResponseText)
     {
         Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
@@ -45,7 +105,7 @@ public class ItineraryPlanner {
         } catch (Exception e)
         {
             e.printStackTrace();
-            Log.e("ERROR", e.getMessage());
+            Log.e("HELLOWORLDERROR", e.getMessage());
             return null;
         }
     }
@@ -77,9 +137,121 @@ public class ItineraryPlanner {
             e.printStackTrace();
             Log.e("HELLOWORLDE", e.getMessage());
 
-            Log.e("ERROR", e.getMessage());
+            Log.e("HELLOWORLDERROR", e.getMessage());
             return null;
         }
+    }
+
+    public CompletableFuture<String> createBetterItinerary(String prompt, String activity)
+    {
+
+
+        Log.d("HELLOWORLD", "IS IT WORKING CHAT??");
+
+        String role = "You are an expert local tourist guide in Cebu City. " +
+                "The user wants to visit a specific spot for: " + activity + ". " +
+                "Your goal is to provide a comprehensive, step-by-step guide for this place. " +
+                "STRICT FORMATTING RULES: " +
+                "1. Use '##' for the Main Title (The Name of the Place). " +
+                "2. Use '###' for Sub-headers (e.g., How to Get There, Costs, Tips). " +
+                "3. Use bullet points for lists. " +
+                "4. Use bolding for key terms like prices or specific bus terminals. " +
+                "5. Always use standard Markdown.";;
+
+        return ai.ask(prompt, role)
+                .thenApply(this::createBetterItineraryResponse)
+                .exceptionally(e -> {
+                    Log.e("HELLOWORLDERROR", e.getMessage());
+                    e.printStackTrace();
+                    return null;
+                });
+
+    }
+
+    public CompletableFuture<ActivityRoot> createActivityRoot(String activity)
+    {
+        String responseFormat =
+                                """
+                                "response_format": {
+                                   "type": "json_schema",
+                                   "json_schema": {
+                                     "name": "hiking_itinerary_response",
+                                     "strict": true,
+                                     "schema": {
+                                       "type": "object",
+                                       "properties": {
+                                         "activity": {
+                                           "type": "string"
+                                         },
+                                         "categories": {
+                                           "type": "array",
+                                           "items": {
+                                             "type": "object",
+                                             "properties": {
+                                               "categoryName": {
+                                                 "type": "string"
+                                               },
+                                               "backgroundColor": {
+                                                 "type": "string"
+                                               },
+                                               "categoryList": {
+                                                 "type": "array",
+                                                 "items": {
+                                                   "type": "object",
+                                                   "properties": {
+                                                     "title": {
+                                                       "type": "string"
+                                                     },
+                                                     "description": {
+                                                       "type": "string"
+                                                     },
+                                                     "location": {
+                                                       "type": "string"
+                                                     }
+                                                   },
+                                                   "required": [
+                                                     "title",
+                                                     "description",
+                                                     "location"
+                                                   ],
+                                                   "additionalProperties": false
+                                                 }
+                                               }
+                                             },
+                                             "required": [
+                                               "categoryName",
+                                               "backgroundColor",
+                                               "categoryList"
+                                             ],
+                                             "additionalProperties": false
+                                           }
+                                         }
+                                       },
+                                       "required": [
+                                         "activity",
+                                         "categories"
+                                       ],
+                                       "additionalProperties": false
+                                     }
+                                   }
+                                 }
+                                """;
+
+
+        String role = "You are an expert local tourist guide in Cebu City. " +
+                "Your goal is to recommend spots in Cebu based on the user's activity (i.e, hiking, swimming, etc), " +
+                "You should categorize your response by grouping similar spots (example: grouped by difficulty, grouped by price category, etc.). " +
+                "Use only pastel colors for backgroundColors. " +
+                "Send response in JSON";
+
+        return ai.ask(activity, role, responseFormat)
+                .thenApply(this::createActivityRootResponse)
+                .exceptionally(e -> {
+                    Log.e("HELLOWORLDERROR", e.getMessage());
+                    e.printStackTrace();
+                    return null;
+                });
+
     }
 
 

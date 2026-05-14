@@ -57,8 +57,6 @@ public class ItineraryResultActivity extends AppCompatActivity {
                     String startStopDate = itinerary.getStartDate() + " - " + itinerary.getStopDate();
                     DayAdapter adapter = new DayAdapter(ItineraryResultActivity.this, itinerary);
 
-
-
                     runOnUiThread(() -> {
                         rvDays.setAdapter(adapter);
                         txtStartStopDate.setText(startStopDate);
