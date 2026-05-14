@@ -1,89 +1,140 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#D6EAF8">
+    android:background="#D1F2FF">
 
-    <!-- Suggestion chips -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
+    <ImageView
+        android:id="@+id/mascotView"
+        android:layout_width="120dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="20dp"
+        android:src="@drawable/whale_shark"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvAiHeader"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="8dp">
-        <LinearLayout
-            android:id="@+id/chipContainer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"/>
-    </HorizontalScrollView>
+        android:layout_marginTop="8dp"
+        android:text="AI"
+        android:textColor="#004A77"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/mascotView" />
 
-    <!-- Chat messages — takes all remaining space -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="16dp"/>
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:padding="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/inputContainer"
+        app:layout_constraintTop_toBottomOf="@id/tvAiHeader" />
 
-    <!-- Loading indicator -->
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:visibility="gone"/>
-
-    <!-- Itinerary section — sits between chat and input bar -->
-
-    <TextView
-        android:id="@+id/tvItineraryTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Your Itinerary"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:paddingStart="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="4dp"/>
-
-    <TextView
-        android:id="@+id/tvItineraryEmpty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Ask me to plan your Cebu itinerary!"
-        android:textColor="@android:color/darker_gray"
-        android:gravity="center"
-        android:padding="16dp"
-        android:visibility="visible"/>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvItinerary"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxHeight="220dp"
         android:visibility="gone"
-        android:nestedScrollingEnabled="false"/>
+        app:layout_constraintBottom_toBottomOf="@id/recyclerView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/recyclerView" />
 
-    <!-- Input bar — always pinned to bottom -->
     <LinearLayout
+        android:id="@+id/inputContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="8dp">
+        android:layout_marginBottom="120dp"
+        android:orientation="vertical"
+        android:paddingHorizontal="32dp"
+        app:layout_constraintBottom_toTopOf="@id/bottomHome"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="HOW MAY I HELP YOU TODAY"
+            android:textColor="#004A77"
+            android:textSize="12sp"
+            android:letterSpacing="0.1" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="4dp"
+            android:background="#004A77" />
+
         <EditText
             android:id="@+id/inputField"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Ask about Cebu spots or food..."
-            android:maxLines="3"/>
+            android:layout_marginTop="8dp"
+            android:background="@android:color/transparent"
+            android:hint="Type here..."
+            android:padding="8dp"
+            android:textAlignment="center"
+            android:textColor="#002D4A"
+            android:textColorHint="#6080A0"
+            android:textSize="14sp" />
+
         <Button
             android:id="@+id/sendButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Send"
-            android:backgroundTint="#1A3A5C"
-            android:layout_marginStart="8dp"/>
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#0096D6"
+            android:paddingHorizontal="40dp"
+            android:paddingVertical="0dp"
+            android:text="SEARCH"
+            android:textSize="12sp"
+            app:cornerRadius="18dp" />
     </LinearLayout>
 
-</LinearLayout>
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvAiHeader">
+        <LinearLayout
+            android:id="@+id/chipContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
+
+    <TextView android:id="@+id/tvItineraryTitle" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent"/>
+    <TextView android:id="@+id/tvItineraryEmpty" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent"/>
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvItinerary" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent"/>
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/bottomHome"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginBottom="40dp"
+        app:cardBackgroundColor="#00B2FF"
+        app:cardCornerRadius="32dp"
+        app:cardElevation="6dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="center"
+            android:src="@android:drawable/ic_menu_today"
+            app:tint="@android:color/white" />
+    </androidx.cardview.widget.CardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

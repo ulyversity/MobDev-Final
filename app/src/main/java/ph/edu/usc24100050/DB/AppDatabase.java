@@ -11,7 +11,7 @@ import java.util.concurrent.Executors;
 
 import ph.edu.usc24100050.Model.ItineraryItem;
 
-@Database(entities = {ItineraryItem.class}, version = 1)
+@Database(entities = {ItineraryItem.class}, version = 2) // Incremented version
 public abstract class AppDatabase extends RoomDatabase {
     public abstract ItineraryDao itineraryDao();
 
@@ -27,8 +27,10 @@ public abstract class AppDatabase extends RoomDatabase {
                     INSTANCE = Room.databaseBuilder(
                             context.getApplicationContext(),
                             AppDatabase.class,
-                            "itinerary_db"   // <-- Different from "mobdev", no conflict
-                    ).build();
+                            "itinerary_db"
+                    )
+                    .fallbackToDestructiveMigration() // Wipe and recreate on schema change
+                    .build();
                 }
             }
         }
