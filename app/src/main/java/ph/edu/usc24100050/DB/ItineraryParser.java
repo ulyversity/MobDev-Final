@@ -23,9 +23,9 @@ public class ItineraryParser {
             for (int i = 0; i < array.length(); i++) {
                 JSONObject obj = array.getJSONObject(i);
                 ItineraryItem item = new ItineraryItem();
-                item.time = obj.optString("time", "");
-                item.task = obj.optString("task", "");
-                if (!item.task.isEmpty()) items.add(item);
+                item.setTime(obj.optString("time", ""));
+                item.setTask(obj.optString("task", ""));
+                if (!item.getTask().isEmpty()) items.add(item);
             }
         } catch (JSONException e) {
             Log.e("ItineraryParser", "Parse failed: " + e.getMessage());

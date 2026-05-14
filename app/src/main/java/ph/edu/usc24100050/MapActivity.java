@@ -13,6 +13,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -35,6 +36,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -73,10 +78,9 @@ public class MapActivity extends AppCompatActivity {
     private Marker destinationMarker;
     private Polyline routeLine;
     private MyLocationNewOverlay mLocationOverlay;
+    private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-
-    // USC TC Bunzel Building Coordinates
-    private final GeoPoint USC_TC_BUNZEL = new GeoPoint(10.3521, 123.9133);
+    private static final float MAX_DISTANCE_KM = 12.0f; // Limit for fixed fare estimates
 
     private Button actionButton;
     private Button retryButton;
@@ -116,6 +120,8 @@ public class MapActivity extends AppCompatActivity {
         Configuration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx));
 
         setContentView(R.layout.activity_map);
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         searchEditText = findViewById(R.id.searchEditText);
         ImageButton searchButton = findViewById(R.id.searchButton);
@@ -207,13 +213,9 @@ public class MapActivity extends AppCompatActivity {
 
         requestLocationPermissions();
 
-        // Initial pickup set to Bunzel
-        pickupPoint = USC_TC_BUNZEL;
         actionButton.setText(R.string.confirm_pickup);
         actionButton.setVisibility(View.VISIBLE);
         retryButton.setVisibility(View.VISIBLE);
-
-        updatePickupMarker(USC_TC_BUNZEL);
     }
 
     private Bitmap getArrowBitmap() {
@@ -254,11 +256,14 @@ public class MapActivity extends AppCompatActivity {
             }, LOCATION_PERMISSION_REQUEST_CODE);
         } else {
             enableMyLocation();
-            goToBunzel();
         }
     }
 
     private void enableMyLocation() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
         if (mLocationOverlay == null) {
             mLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(this), map);
             mLocationOverlay.setPersonIcon(getArrowBitmap());
@@ -266,19 +271,22 @@ public class MapActivity extends AppCompatActivity {
             mLocationOverlay.setDirectionIcon(getArrowBitmap());
             mLocationOverlay.setDirectionAnchor(0.5f, 0.5f);
             mLocationOverlay.setDrawAccuracyEnabled(false);
+
+            mLocationOverlay.runOnFirstFix(() -> runOnUiThread(() -> {
+                GeoPoint myLoc = mLocationOverlay.getMyLocation();
+                if (myLoc != null && isSelectingPickup) {
+                    pickupPoint = myLoc;
+                    updatePickupMarker(myLoc);
+                    mapController.animateTo(myLoc);
+                }
+            }));
+
             map.getOverlays().add(mLocationOverlay);
         }
 
         mLocationOverlay.enableMyLocation();
-        mLocationOverlay.runOnFirstFix(() -> runOnUiThread(() -> map.invalidate()));
+        mLocationOverlay.enableFollowLocation();
         map.invalidate();
-    }
-
-    private void goToBunzel() {
-        map.post(() -> {
-            mapController.animateTo(USC_TC_BUNZEL);
-            map.invalidate();
-        });
     }
 
     @Override
@@ -288,15 +296,14 @@ public class MapActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 enableMyLocation();
             } else {
-                Toast.makeText(this, "Location denied. Map centered on USC TC Bunzel.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Location permission denied. Map might not track your position.", Toast.LENGTH_LONG).show();
             }
-            goToBunzel();
         }
     }
 
     private void handleMapClick(GeoPoint point) {
         if (fareDetailsContainer.getVisibility() == View.VISIBLE) {
-            return; // Destination is already confirmed and locked.
+            return;
         }
 
         boolean isMyLocation = false;
@@ -305,17 +312,13 @@ public class MapActivity extends AppCompatActivity {
         if (myLoc != null && point.distanceToAsDouble(myLoc) < 50.0) {
             isMyLocation = true;
             point = myLoc;
-        } else if (point.distanceToAsDouble(USC_TC_BUNZEL) < 50.0) {
-            isMyLocation = true;
-            point = USC_TC_BUNZEL;
         }
 
         if (isSelectingPickup) {
             if (isMyLocation) {
                 pickupPoint = point;
                 updatePickupMarker(point);
-                String msg = (point.equals(USC_TC_BUNZEL)) ? "Pickup set to USC TC Bunzel." : "Pickup set to your current location.";
-                Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Pickup set to your current location.", Toast.LENGTH_SHORT).show();
                 retryButton.setVisibility(View.VISIBLE);
                 actionButton.setText(R.string.confirm_pickup);
                 actionButton.setVisibility(View.VISIBLE);
@@ -365,15 +368,20 @@ public class MapActivity extends AppCompatActivity {
 
     private void resetApp() {
         isSelectingPickup = true;
-        pickupPoint = USC_TC_BUNZEL;
+        GeoPoint myLoc = (mLocationOverlay != null) ? mLocationOverlay.getMyLocation() : null;
+        pickupPoint = myLoc;
         destinationPoint = null;
         distanceKm = 0;
         if (pickupMarker != null) map.getOverlays().remove(pickupMarker);
         if (destinationMarker != null) map.getOverlays().remove(destinationMarker);
         if (routeLine != null) map.getOverlays().remove(routeLine);
 
-        mapController.animateTo(USC_TC_BUNZEL);
-        updatePickupMarker(USC_TC_BUNZEL);
+        if (myLoc != null) {
+            mapController.animateTo(myLoc);
+            updatePickupMarker(myLoc);
+            mLocationOverlay.enableFollowLocation();
+        }
+
         actionButton.setText(R.string.confirm_pickup);
         actionButton.setVisibility(View.VISIBLE);
         retryButton.setVisibility(View.VISIBLE);
@@ -393,6 +401,7 @@ public class MapActivity extends AppCompatActivity {
             isSelectingPickup = false;
             actionButton.setVisibility(View.GONE);
             Toast.makeText(this, R.string.pickup_confirmed, Toast.LENGTH_SHORT).show();
+            if (mLocationOverlay != null) mLocationOverlay.disableFollowLocation();
         } else if (destinationPoint != null) {
             actionButton.setVisibility(View.GONE);
             fareDetailsContainer.setVisibility(View.VISIBLE);
@@ -444,7 +453,7 @@ public class MapActivity extends AppCompatActivity {
                                 drawRouteLine(roadPoints);
                                 updateFareDisplay();
                                 routeDistance.setText(getString(R.string.distance_label, distanceKm));
-                                if (selectedType == TravelType.JEEPNEY) fetchJeepneyRoutes();
+                                if (selectedType == TravelType.JEEPNEY && distanceKm <= MAX_DISTANCE_KM) fetchJeepneyRoutes();
                             });
                         }
                     } catch (Exception ignored) {}
@@ -575,7 +584,8 @@ public class MapActivity extends AppCompatActivity {
         tabJeepney.setTextColor(Color.GRAY); tabTaxi.setTextColor(Color.GRAY); tabMotorcycle.setTextColor(Color.GRAY);
         if (type == TravelType.JEEPNEY) {
             tabJeepney.setBackground(sel); tabJeepney.setTextColor(Color.WHITE);
-            if (distanceKm > 0) fetchJeepneyRoutes();
+            if (distanceKm > 0 && distanceKm <= MAX_DISTANCE_KM) fetchJeepneyRoutes();
+            else hideTransit();
         } else if (type == TravelType.TAXI) {
             tabTaxi.setBackground(sel); tabTaxi.setTextColor(Color.WHITE);
             hideTransit();
@@ -591,6 +601,22 @@ public class MapActivity extends AppCompatActivity {
     private void updateFareDisplay() {
         if (distanceKm == 0) return;
 
+        if (distanceKm > MAX_DISTANCE_KM) {
+            fareCalculation.setText(R.string.destination_too_far);
+            fareCalculation.setTextColor(Color.RED);
+            fareCalculation.setTextSize(20);
+            fareCalculation.setTypeface(null, Typeface.BOLD);
+            totalFareText.setText(R.string.price_depends_on_driver);
+            totalFareText.setTextColor(Color.BLACK);
+            totalFareText.setTextSize(18);
+            totalFareText.setTypeface(null, Typeface.BOLD);
+            hideTransit();
+            return;
+        }
+
+        fareCalculation.setTextColor(Color.GRAY);
+        fareCalculation.setTextSize(13);
+        fareCalculation.setTypeface(null, Typeface.NORMAL);
         SpannableStringBuilder ssb = new SpannableStringBuilder();
         if (selectedType == TravelType.JEEPNEY) {
             double base = 13, rate = 1.0;
@@ -667,7 +693,6 @@ public class MapActivity extends AppCompatActivity {
         super.onResume();
         map.onResume();
         if (mLocationOverlay != null) mLocationOverlay.enableMyLocation();
-        // Removed the immediate setCenter here to respect the permission-first flow
     }
 
     @Override public void onPause() {
