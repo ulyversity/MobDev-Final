@@ -41,8 +41,8 @@ public class ChatActivity extends AppCompatActivity {
     private ProgressBar progressBar;
 
     private final String[] suggestions = {
-            "Best lechon spots", "Kawasan Falls tips",
-            "3-day itinerary", "Beaches near Cebu City"
+            "What can I do in Cebu?", "Best lechon spots",
+            "Make me a 3-day itinerary", "How do I get to Kawasan Falls?"
     };
 
     @Override
@@ -103,6 +103,9 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
+        // Show Umiko's introduction greeting on first open
+        viewModel.showIntroIfNeeded();
+
         viewModel.navigateToPlanner.observe(this, items -> {
             if (items == null || items.isEmpty()) return;
 
@@ -119,6 +122,18 @@ public class ChatActivity extends AppCompatActivity {
             startActivity(intent);
             // Reset so re-observe doesn't re-trigger navigation
             viewModel.navigateToPlanner.setValue(null);
+        });
+
+        // Navigate to MapActivity when Umiko sets a route automatically
+        viewModel.navigateToMap.observe(this, routeStr -> {
+            if (routeStr == null || routeStr.isEmpty()) return;
+            String[] parts = routeStr.split("\\|", 2);
+            Intent intent = new Intent(ChatActivity.this, MapActivity.class);
+            intent.putExtra("from_chat", true);
+            intent.putExtra("route_from", parts.length > 0 ? parts[0] : "");
+            intent.putExtra("route_to",   parts.length > 1 ? parts[1] : "");
+            startActivity(intent);
+            viewModel.navigateToMap.setValue(null);
         });
 
         viewModel.getIsLoading().observe(this, loading -> {
