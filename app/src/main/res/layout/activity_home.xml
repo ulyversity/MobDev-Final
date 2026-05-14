@@ -173,6 +173,41 @@
 
     </GridLayout>
 
+    <!-- 5th Card (Rating) centered below the grid -->
+    <LinearLayout
+        android:id="@+id/cardRating"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/card_bg"
+        app:layout_constraintTop_toBottomOf="@id/gridMenu"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintWidth_percent="0.43">
+
+        <ImageView
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:contentDescription="Rating Icon"
+            android:src="@drawable/rating_icon"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Rating"
+            android:textColor="#1A3A5C"
+            android:textSize="13sp"
+            android:letterSpacing="0.08"
+            android:fontFamily="sans-serif-medium" />
+    </LinearLayout>
+
     <!-- Bottom Home Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnHome"

@@ -34,10 +34,18 @@ public class Home extends AppCompatActivity {
             startActivity(intent);
         });
 
-        LinearLayout cardSites =  findViewById(R.id.cardItineraryPlanner);
-        cardSites.setOnClickListener(v -> {
+        LinearLayout cardPlanner =  findViewById(R.id.cardItineraryPlanner);
+        cardPlanner.setOnClickListener(v -> {
 
             Intent intent = new Intent(Home.this, ItineraryPlannerActivity.class);
+            User user = getIntent().getParcelableExtra("user");
+            intent.putExtra("user", user);
+            startActivity(intent);
+        });
+        LinearLayout cardRating =  findViewById(R.id.cardRating);
+        cardRating.setOnClickListener(v -> {
+
+            Intent intent = new Intent(Home.this, PlaceActivity.class);
             User user = getIntent().getParcelableExtra("user");
             intent.putExtra("user", user);
             startActivity(intent);

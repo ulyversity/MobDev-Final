@@ -265,6 +265,16 @@ public class ChatViewModel extends AndroidViewModel {
         });
     }
 
+    public void clearItinerary() {
+        AppDatabase.databaseWriteExecutor.execute(() -> {
+            try {
+                itineraryDao.clearAll();
+            } catch (Exception e) {
+                Log.e("ChatViewModel", "Failed to clear itinerary: " + e.getMessage());
+            }
+        });
+    }
+
     // ─── Helpers ───────────────────────────────────────────────────────────────
     private boolean matchesAny(String lower, String[] triggers) {
         for (String trigger : triggers) {
