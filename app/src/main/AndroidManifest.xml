@@ -16,6 +16,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FINALPROJECT">
         <activity
+            android:name=".BetterItinerary"
+            android:exported="false" />
+        <activity
             android:name=".ExtraPrompt"
             android:exported="false" />
         <activity

@@ -1,5 +1,7 @@
 package ph.edu.usc24100050.ItirenaryPlannerCore;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import java.io.IOException;
@@ -28,10 +30,26 @@ public class Groq implements LLMAPI {
 
         String escapedText = text.replace("\"", "\\\"");
 
-        String jsonPayload = String.format(
-                "{\"model\": \"%s\", \"messages\": [{\"role\": \"system\", \"content\": \"%s\"},{\"role\": \"user\", \"content\": \"%s\"}], %s}",
-                MODEL, role, escapedText, responseFormat
-        );
+        String jsonPayload = "";
+        if (responseFormat.equals(""))
+        {
+
+            jsonPayload = String.format(
+                    "{\"model\": \"%s\", \"messages\": [{\"role\": \"system\", \"content\": \"%s\"},{\"role\": \"user\", \"content\": \"%s\"}]}",
+                    MODEL, role, escapedText
+            );
+        }
+        else {
+            jsonPayload = String.format(
+                    "{\"model\": \"%s\", \"messages\": [{\"role\": \"system\", \"content\": \"%s\"},{\"role\": \"user\", \"content\": \"%s\"}], %s}",
+                    MODEL, role, escapedText, responseFormat
+            );
+        }
+
+        Log.d("HELLOWORLDJSONPAYLOAD", jsonPayload);
+
+
+
 
         OkHttpClient client = new OkHttpClient();
 
@@ -66,6 +84,11 @@ public class Groq implements LLMAPI {
         });
 
         return future;
+    }
+
+    @Override
+    public CompletableFuture<String> ask(String text, String role) {
+        return ask(text, role, "");
     }
 
 
