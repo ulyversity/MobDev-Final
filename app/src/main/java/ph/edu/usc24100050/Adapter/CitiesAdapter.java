@@ -48,7 +48,7 @@ public class CitiesAdapter extends RecyclerView.Adapter<CitiesAdapter.MyViewHold
 
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(ctx, ItineraryResultActivity.class);
-            String myPrompt = String.format("%s at %s", previousPrompt, activity);
+            String myPrompt = String.format("I want to %s at %s, here is my previous prompt for more context", activity, city, previousPrompt);
             intent.putExtra("prompt", myPrompt);
             ctx.startActivity(intent);
         });
