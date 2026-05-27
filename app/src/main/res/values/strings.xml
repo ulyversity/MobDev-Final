@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Cebu Tourism Map</string>
     <string name="retry">Retry</string>
+    <string name="pick_yourself">Pick Yourself</string>
     <string name="confirm_pickup">Confirm Pickup</string>
     <string name="confirm_destination">Confirm Destination</string>
     <string name="distance_label">Distance: %.2f km</string>
@@ -23,4 +24,11 @@
     <string name="route_confirmed_reset">Route confirmed. Reset to search again.</string>
     <string name="destination_too_far">Destination is too far!</string>
     <string name="price_depends_on_driver">Prices depend on the driver.</string>
+    <string name="back_to_home">Back to Home</string>
+    <string name="pick_yourself_hint">Tap the map to select your pickup point</string>
+    <string name="pin_pickup_restriction">Click \'Pick Yourself\' or search to pin a pickup point</string>
+    <string name="set_pickup">Set Pickup</string>
+    <string name="set_destination">Set Destination</string>
+    <string name="address_label">Address</string>
+    <string name="clear_search">Clear search</string>
 </resources>

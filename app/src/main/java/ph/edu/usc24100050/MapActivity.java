@@ -9,11 +9,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -21,10 +19,12 @@ import android.text.Editable;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
+import android.text.style.BackgroundColorSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -39,7 +39,6 @@ import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -80,11 +79,12 @@ public class MapActivity extends AppCompatActivity {
     private MyLocationNewOverlay mLocationOverlay;
     private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-    private static final float MAX_DISTANCE_KM = 12.0f; // Limit for fixed fare estimates
+    private static final float MAX_DISTANCE_KM = 12.0f;
 
     private Button actionButton;
     private Button retryButton;
     private AutoCompleteTextView searchEditText;
+    private ImageButton clearSearchButton;
     private TextView routeDistance;
 
     private View fareDetailsContainer;
@@ -98,9 +98,11 @@ public class MapActivity extends AppCompatActivity {
 
     private CardView locationInfoCard;
     private TextView placeName;
+    private TextView placeAddress;
     private GeoPoint lastSearchedPoint;
 
     private boolean isSelectingPickup = true;
+    private boolean isManualPickup = false;
     private GeoPoint pickupPoint;
     private GeoPoint destinationPoint;
     private float distanceKm = 0;
@@ -109,7 +111,6 @@ public class MapActivity extends AppCompatActivity {
     private TravelType selectedType = TravelType.JEEPNEY;
 
     private SuggestionAdapter adapter;
-    private final List<String> suggestions = new ArrayList<>();
     private final List<Address> addressResults = new ArrayList<>();
 
     @Override
@@ -124,6 +125,7 @@ public class MapActivity extends AppCompatActivity {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         searchEditText = findViewById(R.id.searchEditText);
+        clearSearchButton = findViewById(R.id.clearSearchButton);
         ImageButton searchButton = findViewById(R.id.searchButton);
         actionButton = findViewById(R.id.actionButton);
         retryButton = findViewById(R.id.retryButton);
@@ -143,6 +145,8 @@ public class MapActivity extends AppCompatActivity {
 
         locationInfoCard = findViewById(R.id.locationInfoCard);
         placeName = findViewById(R.id.placeName);
+        placeAddress = findViewById(R.id.placeAddress);
+        Button setPickupButton = findViewById(R.id.setPickupButton);
         Button setDestinationButton = findViewById(R.id.setDestinationButton);
 
         map = findViewById(R.id.map);
@@ -151,19 +155,35 @@ public class MapActivity extends AppCompatActivity {
 
         findViewById(R.id.zoomInButton).setOnClickListener(v -> mapController.zoomIn());
         findViewById(R.id.zoomOutButton).setOnClickListener(v -> mapController.zoomOut());
+        findViewById(R.id.myLocationButton).setOnClickListener(v -> centerOnMyLocation());
+        findViewById(R.id.backButton).setOnClickListener(v -> finish());
 
         mapController = map.getController();
-        mapController.setZoom(19.0);
+        mapController.setZoom(17.0);
 
-        adapter = new SuggestionAdapter(this, R.layout.item_search_suggestion, suggestions);
+        adapter = new SuggestionAdapter(this, R.layout.item_search_suggestion, addressResults);
         searchEditText.setAdapter(adapter);
 
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                clearSearchButton.setVisibility(s.length() > 0 ? View.VISIBLE : View.GONE);
                 if (s.length() > 2) updateSuggestions(s.toString());
             }
             @Override public void afterTextChanged(Editable s) {}
+        });
+
+        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                searchLocation();
+                return true;
+            }
+            return false;
+        });
+
+        clearSearchButton.setOnClickListener(v -> {
+            searchEditText.setText("");
+            locationInfoCard.setVisibility(View.GONE);
         });
 
         searchEditText.setOnItemClickListener((parent, view, position, id) -> {
@@ -172,10 +192,20 @@ public class MapActivity extends AppCompatActivity {
                 return;
             }
             Address addr = addressResults.get(position);
-            lastSearchedPoint = new GeoPoint(addr.getLatitude(), addr.getLongitude());
-            mapController.animateTo(lastSearchedPoint);
-            placeName.setText(addr.getFeatureName() != null ? addr.getFeatureName() : addr.getAddressLine(0));
-            locationInfoCard.setVisibility(View.VISIBLE);
+            selectResult(addr);
+        });
+
+        setPickupButton.setOnClickListener(v -> {
+            if (fareDetailsContainer.getVisibility() == View.VISIBLE) {
+                Toast.makeText(this, R.string.destination_locked, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (lastSearchedPoint != null) {
+                isSelectingPickup = true;
+                isManualPickup = true;
+                handleMapClick(lastSearchedPoint);
+                locationInfoCard.setVisibility(View.GONE);
+            }
         });
 
         setDestinationButton.setOnClickListener(v -> {
@@ -184,7 +214,19 @@ public class MapActivity extends AppCompatActivity {
                 return;
             }
             if (lastSearchedPoint != null) {
-                isSelectingPickup = false;
+                if (isSelectingPickup) {
+                    GeoPoint myLoc = (mLocationOverlay != null) ? mLocationOverlay.getMyLocation() : null;
+                    if (myLoc != null) {
+                        pickupPoint = myLoc;
+                        isManualPickup = false;
+                        if (pickupMarker != null) map.getOverlays().remove(pickupMarker);
+                        isSelectingPickup = false;
+                        Toast.makeText(this, "Pickup set to Current Location", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Waiting for current location...", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
                 handleMapClick(lastSearchedPoint);
                 locationInfoCard.setVisibility(View.GONE);
             }
@@ -215,7 +257,32 @@ public class MapActivity extends AppCompatActivity {
 
         actionButton.setText(R.string.confirm_pickup);
         actionButton.setVisibility(View.VISIBLE);
+        retryButton.setText(R.string.pick_yourself);
         retryButton.setVisibility(View.VISIBLE);
+    }
+
+    private void centerOnMyLocation() {
+        if (mLocationOverlay != null && mLocationOverlay.isMyLocationEnabled()) {
+            GeoPoint myLoc = mLocationOverlay.getMyLocation();
+            if (myLoc != null) {
+                mapController.animateTo(myLoc);
+                if (isSelectingPickup) {
+                    isManualPickup = false;
+                    pickupPoint = myLoc;
+                    if (pickupMarker != null) {
+                        map.getOverlays().remove(pickupMarker);
+                        pickupMarker = null;
+                    }
+                    actionButton.setText(R.string.confirm_pickup);
+                    actionButton.setVisibility(View.VISIBLE);
+                    map.invalidate();
+                }
+            } else {
+                Toast.makeText(this, "Waiting for location...", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            requestLocationPermissions();
+        }
     }
 
     private Bitmap getArrowBitmap() {
@@ -239,10 +306,15 @@ public class MapActivity extends AppCompatActivity {
 
     private void updatePickupMarker(GeoPoint point) {
         if (pickupMarker != null) map.getOverlays().remove(pickupMarker);
+        if (!isManualPickup) {
+            pickupMarker = null;
+            return;
+        }
+
         pickupMarker = new Marker(map);
         pickupMarker.setPosition(point);
-        pickupMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER);
-        pickupMarker.setIcon(new BitmapDrawable(getResources(), getArrowBitmap()));
+        pickupMarker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
+        pickupMarker.setIcon(ContextCompat.getDrawable(this, R.drawable.ic_location_pin));
         pickupMarker.setTitle("Pickup Point");
         map.getOverlays().add(pickupMarker);
         map.invalidate();
@@ -274,10 +346,12 @@ public class MapActivity extends AppCompatActivity {
 
             mLocationOverlay.runOnFirstFix(() -> runOnUiThread(() -> {
                 GeoPoint myLoc = mLocationOverlay.getMyLocation();
-                if (myLoc != null && isSelectingPickup) {
-                    pickupPoint = myLoc;
-                    updatePickupMarker(myLoc);
+                if (myLoc != null) {
                     mapController.animateTo(myLoc);
+                    if (isSelectingPickup && pickupPoint == null) {
+                        isManualPickup = false;
+                        pickupPoint = myLoc;
+                    }
                 }
             }));
 
@@ -296,7 +370,7 @@ public class MapActivity extends AppCompatActivity {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 enableMyLocation();
             } else {
-                Toast.makeText(this, "Location permission denied. Map might not track your position.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Location permission denied.", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -306,23 +380,18 @@ public class MapActivity extends AppCompatActivity {
             return;
         }
 
-        boolean isMyLocation = false;
-        GeoPoint myLoc = (mLocationOverlay != null) ? mLocationOverlay.getMyLocation() : null;
-
-        if (myLoc != null && point.distanceToAsDouble(myLoc) < 50.0) {
-            isMyLocation = true;
-            point = myLoc;
-        }
-
         if (isSelectingPickup) {
-            if (isMyLocation) {
-                pickupPoint = point;
-                updatePickupMarker(point);
-                Toast.makeText(this, "Pickup set to your current location.", Toast.LENGTH_SHORT).show();
-                retryButton.setVisibility(View.VISIBLE);
-                actionButton.setText(R.string.confirm_pickup);
-                actionButton.setVisibility(View.VISIBLE);
+            if (!isManualPickup) {
+                Toast.makeText(this, R.string.pin_pickup_restriction, Toast.LENGTH_SHORT).show();
+                return;
             }
+            pickupPoint = point;
+            updatePickupMarker(point);
+            retryButton.setText(R.string.retry);
+            retryButton.setVisibility(View.VISIBLE);
+            actionButton.setText(R.string.confirm_pickup);
+            actionButton.setVisibility(View.VISIBLE);
+            map.invalidate();
             return;
         }
 
@@ -330,6 +399,7 @@ public class MapActivity extends AppCompatActivity {
         if (destinationMarker != null) map.getOverlays().remove(destinationMarker);
         destinationMarker = createMarker(point, "Destination", R.drawable.ic_location_pin);
         retryButton.setVisibility(View.VISIBLE);
+        retryButton.setText(R.string.retry);
         actionButton.setText(R.string.confirm_destination);
         actionButton.setVisibility(View.VISIBLE);
         if (pickupPoint != null) {
@@ -349,6 +419,13 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void handleRetry() {
+        if (retryButton.getText().toString().equals(getString(R.string.pick_yourself))) {
+            isManualPickup = true;
+            Toast.makeText(this, R.string.pick_yourself_hint, Toast.LENGTH_SHORT).show();
+            retryButton.setText(R.string.retry);
+            return;
+        }
+
         if (fareDetailsContainer.getVisibility() == View.VISIBLE) {
             resetApp();
         } else if (!isSelectingPickup) {
@@ -368,22 +445,33 @@ public class MapActivity extends AppCompatActivity {
 
     private void resetApp() {
         isSelectingPickup = true;
-        GeoPoint myLoc = (mLocationOverlay != null) ? mLocationOverlay.getMyLocation() : null;
-        pickupPoint = myLoc;
+        isManualPickup = false;
+        pickupPoint = null;
         destinationPoint = null;
         distanceKm = 0;
-        if (pickupMarker != null) map.getOverlays().remove(pickupMarker);
-        if (destinationMarker != null) map.getOverlays().remove(destinationMarker);
-        if (routeLine != null) map.getOverlays().remove(routeLine);
+        if (pickupMarker != null) {
+            map.getOverlays().remove(pickupMarker);
+            pickupMarker = null;
+        }
+        if (destinationMarker != null) {
+            map.getOverlays().remove(destinationMarker);
+            destinationMarker = null;
+        }
+        if (routeLine != null) {
+            map.getOverlays().remove(routeLine);
+            routeLine = null;
+        }
 
+        GeoPoint myLoc = (mLocationOverlay != null) ? mLocationOverlay.getMyLocation() : null;
         if (myLoc != null) {
+            isManualPickup = false;
+            pickupPoint = myLoc;
             mapController.animateTo(myLoc);
-            updatePickupMarker(myLoc);
-            mLocationOverlay.enableFollowLocation();
         }
 
         actionButton.setText(R.string.confirm_pickup);
         actionButton.setVisibility(View.VISIBLE);
+        retryButton.setText(R.string.pick_yourself);
         retryButton.setVisibility(View.VISIBLE);
 
         fareDetailsContainer.setVisibility(View.INVISIBLE);
@@ -397,31 +485,49 @@ public class MapActivity extends AppCompatActivity {
     }
 
     private void confirmSelection() {
-        if (isSelectingPickup && pickupPoint != null) {
+        if (isSelectingPickup) {
+            if (pickupPoint == null) {
+                Toast.makeText(this, "Please select a pickup point first", Toast.LENGTH_SHORT).show();
+                return;
+            }
             isSelectingPickup = false;
             actionButton.setVisibility(View.GONE);
+            retryButton.setText(R.string.retry);
+            routeDistance.setText(R.string.pin_dest_hint);
             Toast.makeText(this, R.string.pickup_confirmed, Toast.LENGTH_SHORT).show();
             if (mLocationOverlay != null) mLocationOverlay.disableFollowLocation();
         } else if (destinationPoint != null) {
             actionButton.setVisibility(View.GONE);
             fareDetailsContainer.setVisibility(View.VISIBLE);
             searchEditText.setEnabled(false);
+            retryButton.setText(R.string.retry);
         }
+    }
+
+    private void selectResult(Address addr) {
+        lastSearchedPoint = new GeoPoint(addr.getLatitude(), addr.getLongitude());
+        mapController.animateTo(lastSearchedPoint);
+        
+        String name = SuggestionAdapter.getCleanName(addr);
+        placeName.setText(name);
+        placeAddress.setText(addr.getAddressLine(0));
+        placeAddress.setVisibility(View.VISIBLE);
+        locationInfoCard.setVisibility(View.VISIBLE);
+        
+        searchEditText.setText(name);
+        searchEditText.setSelection(name.length());
+        searchEditText.dismissDropDown();
     }
 
     private void updateSuggestions(String query) {
         new Thread(() -> {
             Geocoder geocoder = new Geocoder(this, Locale.getDefault());
             try {
-                List<Address> addresses = geocoder.getFromLocationName(query + ", Cebu", 5);
+                List<Address> addresses = geocoder.getFromLocationName(query + ", Cebu", 10);
                 runOnUiThread(() -> {
-                    suggestions.clear();
                     addressResults.clear();
                     if (addresses != null) {
-                        for (Address addr : addresses) {
-                            suggestions.add(addr.getAddressLine(0));
-                            addressResults.add(addr);
-                        }
+                        addressResults.addAll(addresses);
                     }
                     adapter.notifyDataSetChanged();
                 });
@@ -479,7 +585,6 @@ public class MapActivity extends AppCompatActivity {
             divider.setVisibility(View.VISIBLE);
             jeepneyRoutesTitle.setVisibility(View.VISIBLE);
             jeepneyRoutesTitle.setText(R.string.jeepney_lines_title);
-            jeepneyRoutesTitle.setTextSize(18);
             jeepneyRoutesText.setVisibility(View.VISIBLE);
             jeepneyRoutesText.setText(R.string.querying_transit);
         });
@@ -509,24 +614,56 @@ public class MapActivity extends AppCompatActivity {
                         Map<String, String> routeMap = new TreeMap<>();
                         for (int i = 0; i < elements.length(); i++) {
                             JSONObject tags = elements.getJSONObject(i).getJSONObject("tags");
-                            String ref = tags.optString("ref", "");
-                            if (ref.isEmpty()) continue;
+                            String rawRef = tags.optString("ref", "").trim();
+                            String rawName = tags.optString("name", "").trim();
+                            String from = tags.optString("from", "").trim();
+                            String to = tags.optString("to", "").trim();
 
-                            String from = tags.optString("from", "");
-                            String to = tags.optString("to", "");
-                            String via = tags.optString("via", "");
-                            String name = tags.optString("name", "");
+                            String code = rawRef;
+                            String desc = "";
 
-                            String routeDesc = "";
                             if (!from.isEmpty() && !to.isEmpty()) {
-                                routeDesc = from + (via.isEmpty() ? "" : " - " + via) + " - " + to;
-                            } else if (!name.isEmpty()) {
-                                routeDesc = name.replace("Jeepney " + ref, "").replace(ref, "").trim();
-                                if (routeDesc.startsWith(":") || routeDesc.startsWith("-")) routeDesc = routeDesc.substring(1).trim();
+                                desc = from + (tags.optString("via", "").isEmpty() ? "" : " - " + tags.optString("via", "")) + " - " + to;
+                            } else if (!rawName.isEmpty()) {
+                                desc = rawName;
                             }
 
-                            if (!routeMap.containsKey(ref) || (routeMap.get(ref) != null && routeMap.get(ref).length() < routeDesc.length())) {
-                                routeMap.put(ref, routeDesc);
+                            if (code.length() > 3) {
+                                int splitIdx = -1;
+                                for (int j = 0; j < code.length(); j++) {
+                                    char c = code.charAt(j);
+                                    if (c == ' ' || c == '-' || c == ':') {
+                                        splitIdx = j;
+                                        break;
+                                    }
+                                }
+                                if (splitIdx != -1 && splitIdx <= 5) {
+                                    String possibleCode = code.substring(0, splitIdx).trim();
+                                    String possibleDesc = code.substring(splitIdx + 1).trim();
+
+                                    code = possibleCode;
+                                    if (desc.isEmpty() || desc.equalsIgnoreCase(rawRef) || desc.equalsIgnoreCase(rawName)) {
+                                        desc = possibleDesc;
+                                    }
+                                }
+                            }
+
+                            if (!desc.isEmpty()) {
+                                String upperDesc = desc.toUpperCase();
+                                String upperCode = code.toUpperCase();
+                                if (upperDesc.startsWith(upperCode)) {
+                                    desc = desc.substring(code.length()).trim();
+                                    if (desc.startsWith("-") || desc.startsWith(":") || desc.startsWith(" ")) {
+                                        desc = desc.substring(1).trim();
+                                    }
+                                }
+                            }
+
+                            if (code.isEmpty()) continue;
+
+                            String finalCode = code.toUpperCase();
+                            if (!routeMap.containsKey(finalCode) || (routeMap.get(finalCode) != null && routeMap.get(finalCode).length() < desc.length())) {
+                                routeMap.put(finalCode, desc);
                             }
                         }
 
@@ -541,18 +678,20 @@ public class MapActivity extends AppCompatActivity {
                                     String desc = entry.getValue();
 
                                     int start = ssb.length();
-                                    ssb.append("• ").append(code);
+                                    ssb.append(" ").append(code).append(" ");
                                     int end = ssb.length();
 
                                     ssb.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                                    ssb.setSpan(new RelativeSizeSpan(1.4f), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                    ssb.setSpan(new BackgroundColorSpan(Color.parseColor("#E3F2FD")), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                                     ssb.setSpan(new ForegroundColorSpan(Color.parseColor("#008DFF")), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                    ssb.setSpan(new RelativeSizeSpan(1.1f), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                                     if (desc != null && !desc.isEmpty()) {
                                         int descStart = ssb.length();
-                                        ssb.append("\n    ").append(desc);
-                                        ssb.setSpan(new RelativeSizeSpan(0.95f), descStart, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                        ssb.append("  ").append(desc);
+                                        ssb.setSpan(new StyleSpan(Typeface.NORMAL), descStart, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                                         ssb.setSpan(new ForegroundColorSpan(Color.DKGRAY), descStart, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                        ssb.setSpan(new RelativeSizeSpan(0.9f), descStart, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
                                     }
 
                                     ssb.append("\n\n");
@@ -659,9 +798,18 @@ public class MapActivity extends AppCompatActivity {
 
     private void appendFareRow(SpannableStringBuilder ssb, String name, double price, double base, double rate, String extra) {
         int start = ssb.length();
-        ssb.append(name).append(": ");
-        ssb.setSpan(new StyleSpan(Typeface.BOLD), start, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.append(" ").append(name).append(" ");
+        int end = ssb.length();
+
+        ssb.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(new BackgroundColorSpan(Color.parseColor("#E3F2FD")), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(new ForegroundColorSpan(Color.parseColor("#008DFF")), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+        ssb.append(": ");
+        int priceStart = ssb.length();
         ssb.append(String.format(Locale.US, "₱%.2f\n", price));
+        ssb.setSpan(new ForegroundColorSpan(Color.parseColor("#008DFF")), priceStart, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(new StyleSpan(Typeface.BOLD), priceStart, ssb.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 
         int formulaStart = ssb.length();
         String formula = String.format(Locale.US, "    Base: ₱%.2f | Rate: ₱%.2f/km%s\n\n", base, rate, extra != null ? " + " + extra : "");
@@ -674,16 +822,13 @@ public class MapActivity extends AppCompatActivity {
         String loc = searchEditText.getText().toString();
         if (loc.isEmpty()) return;
         new Thread(() -> {
+            Geocoder geocoder = new Geocoder(this, Locale.getDefault());
             try {
-                List<Address> list = new Geocoder(this).getFromLocationName(loc + ", Cebu", 1);
+                List<Address> list = geocoder.getFromLocationName(loc + ", Cebu", 1);
                 if (list != null && !list.isEmpty()) {
-                    runOnUiThread(() -> {
-                        Address a = list.get(0);
-                        lastSearchedPoint = new GeoPoint(a.getLatitude(), a.getLongitude());
-                        mapController.animateTo(lastSearchedPoint);
-                        placeName.setText(a.getFeatureName());
-                        locationInfoCard.setVisibility(View.VISIBLE);
-                    });
+                    runOnUiThread(() -> selectResult(list.get(0)));
+                } else {
+                    runOnUiThread(() -> Toast.makeText(MapActivity.this, "Location not found in Cebu", Toast.LENGTH_SHORT).show());
                 }
             } catch (IOException ignored) {}
         }).start();

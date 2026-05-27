@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="#F8F9FA">
 
-    <!-- Top Search Bar -->
     <androidx.cardview.widget.CardView
         android:id="@+id/searchCard"
         android:layout_width="match_parent"
@@ -18,7 +17,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="8dp">
+            android:padding="4dp"
+            android:gravity="center_vertical">
 
             <AutoCompleteTextView
                 android:id="@+id/searchEditText"
@@ -32,6 +32,22 @@
                 android:importantForAutofill="no"
                 android:textSize="16sp"
                 android:completionThreshold="1"/>
+
+            <ImageButton
+                android:id="@+id/clearSearchButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/clear_search"
+                app:tint="#888888"
+                android:visibility="gone"/>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:background="#DDDDDD"
+                android:layout_marginHorizontal="4dp"/>
 
             <ImageButton
                 android:id="@+id/searchButton"
@@ -66,12 +82,53 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="end|center_vertical"
                 android:layout_marginEnd="12dp"
-                android:orientation="vertical">
-                <ImageButton android:id="@+id/zoomInButton" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginBottom="8dp" android:src="@drawable/ic_zoom_in" android:background="@android:color/white" android:elevation="4dp" app:tint="#333333" android:contentDescription="Zoom In"/>
-                <ImageButton android:id="@+id/zoomOutButton" android:layout_width="40dp" android:layout_height="40dp" android:src="@drawable/ic_zoom_out" android:background="@android:color/white" android:elevation="4dp" app:tint="#333333" android:contentDescription="Zoom Out"/>
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <ImageButton
+                    android:id="@+id/myLocationButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="8dp"
+                    android:src="@android:drawable/ic_menu_mylocation"
+                    android:background="@android:color/white"
+                    android:elevation="4dp"
+                    app:tint="#008DFF"
+                    android:contentDescription="My Location"/>
+
+                <ImageButton
+                    android:id="@+id/zoomInButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="8dp"
+                    android:src="@drawable/ic_zoom_in"
+                    android:background="@android:color/white"
+                    android:elevation="4dp"
+                    app:tint="#333333"
+                    android:contentDescription="Zoom In"/>
+
+                <ImageButton
+                    android:id="@+id/zoomOutButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginBottom="8dp"
+                    android:src="@drawable/ic_zoom_out"
+                    android:background="@android:color/white"
+                    android:elevation="4dp"
+                    app:tint="#333333"
+                    android:contentDescription="Zoom Out"/>
+
+                <ImageButton
+                    android:id="@+id/backButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:background="@android:color/white"
+                    android:elevation="4dp"
+                    app:tint="#555555"
+                    android:contentDescription="@string/back_to_home"/>
             </LinearLayout>
 
-            <!-- Action Buttons Overlay -->
             <LinearLayout
                 android:id="@+id/actionButtonsLayout"
                 android:layout_width="match_parent"
@@ -87,8 +144,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:text="@string/retry"
-                    android:visibility="gone"
+                    android:text="@string/pick_yourself"
+                    android:visibility="visible"
                     android:backgroundTint="#F44336"
                     android:textColor="@android:color/white"
                     android:textAllCaps="false"/>
@@ -99,7 +156,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/confirm_pickup"
-                    android:visibility="gone"
+                    android:visibility="visible"
                     android:backgroundTint="#008DFF"
                     android:textColor="@android:color/white"
                     android:textAllCaps="false"/>
@@ -147,7 +204,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Searched Location Info (Floating) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/locationInfoCard"
         android:layout_width="match_parent"
@@ -159,7 +215,32 @@
         app:cardElevation="8dp">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
             <TextView android:id="@+id/placeName" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Place Name" android:textSize="18sp" android:textStyle="bold" android:textColor="#333333"/>
-            <Button android:id="@+id/setDestinationButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Set as Destination" android:backgroundTint="#008DFF" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/placeAddress" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/address_label" android:textSize="14sp" android:textColor="#666666" android:layout_marginTop="4dp" android:visibility="gone"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="12dp">
+                <Button
+                    android:id="@+id/setPickupButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/set_pickup"
+                    android:backgroundTint="#4CAF50"
+                    android:textColor="@android:color/white"
+                    android:textAllCaps="false"/>
+                <Button android:id="@+id/setDestinationButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/set_destination"
+                    android:backgroundTint="#008DFF"
+                    android:textColor="@android:color/white"
+                    android:textAllCaps="false"/>
+            </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </RelativeLayout>
