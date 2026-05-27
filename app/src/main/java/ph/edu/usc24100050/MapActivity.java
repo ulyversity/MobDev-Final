@@ -158,6 +158,11 @@ public class MapActivity extends AppCompatActivity {
         adapter = new SuggestionAdapter(this, R.layout.item_search_suggestion, suggestions);
         searchEditText.setAdapter(adapter);
 
+        if(getIntent().hasExtra("location"))
+        {
+            searchEditText.setText(getIntent().getStringExtra("location"));
+        }
+
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {

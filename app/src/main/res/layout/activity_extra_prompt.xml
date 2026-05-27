@@ -7,18 +7,7 @@
     android:layout_height="match_parent"
     tools:context=".ExtraPrompt">
 
-    <EditText
-        android:id="@+id/txtExtraPrompt"
-        android:layout_width="382dp"
-        android:layout_height="103dp"
-        android:layout_marginBottom="32dp"
-        android:ems="10"
-        android:gravity="start|top"
-        android:inputType="textMultiLine"
-        app:layout_constraintBottom_toTopOf="@+id/btnCreatePlanExtra"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
+    <!-- 1. The Label: Constrained to Top and Bottom to help centering -->
     <TextView
         android:id="@+id/textView"
         android:layout_width="wrap_content"
@@ -27,23 +16,47 @@
         android:text="Anything Else?"
         android:textSize="20sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/txtExtraPrompt"
+        app:layout_constraintBottom_toTopOf="@+id/bottomBundleCard"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
 
-    <Button
-        android:id="@+id/btnCreatePlanExtra"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
+    <!-- 2. The Horizontal Card: Contains your original components -->
+    <LinearLayout
+        android:id="@+id/bottomBundleCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="280dp"
-        android:text="Create Plan"
+        android:layout_margin="16dp"
+        android:background="@drawable/card_bg"
+        android:elevation="6dp"
+        android:orientation="horizontal"
+        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:background="@drawable/button_border"
-        app:backgroundTint="#2B7FFF"/>
+        app:layout_constraintTop_toBottomOf="@+id/textView">
 
+        <EditText
+            android:id="@+id/txtExtraPrompt"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:autofillHints="none"
+            android:background="@android:color/transparent"
+            android:hint="Tell us more details..."
+            android:inputType="textMultiLine|textCapSentences"
+            android:maxLines="3"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btnCreatePlanExtra"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:backgroundTint="#1A3A5C"
+            android:text="Send"
+            android:textColor="@android:color/white" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
