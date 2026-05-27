@@ -2,9 +2,11 @@ package ph.edu.usc24100050.Adapter;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -41,13 +43,24 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
 
         holder.tvCategoryName.setText(category.getCategoryName());
 
-        // Parse the color string (expects format like "#FFFFFF" or "red")
+        // 2. Parse the color string
+        int backgroundColor;
         try {
-            holder.itemView.setBackgroundColor(Color.parseColor(category.getBackgroundColor()));
+            backgroundColor = Color.parseColor(category.getBackgroundColor());
         } catch (Exception e) {
-            // Default color if the string is malformed
-            holder.itemView.setBackgroundColor(Color.LTGRAY);
+            backgroundColor = Color.LTGRAY;
         }
+
+        // 3. Programmatically build a rounded shape drawable
+        GradientDrawable shape = new GradientDrawable();
+        shape.setShape(GradientDrawable.RECTANGLE);
+        shape.setColor(backgroundColor);
+
+        // Set your border radius in pixels (e.g., 32px roughly equals 12dp-16dp depending on screen)
+        shape.setCornerRadius(32f);
+
+        // Apply it directly to the container layout
+        holder.layoutContainer.setBackground(shape);
 
         ItemAdapter itemAdapter = new ItemAdapter(this.context, category.getCategoryList(), this.activityName);
         holder.rvItems.setLayoutManager(new LinearLayoutManager(this.context));
@@ -62,12 +75,13 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
     public static class CategoryViewHolder extends RecyclerView.ViewHolder {
         TextView tvCategoryName;
         RecyclerView rvItems;
-
+        LinearLayout layoutContainer;
         public CategoryViewHolder(@NonNull View itemView) {
             super(itemView);
             // Replace with your actual IDs
             tvCategoryName = itemView.findViewById(R.id.txtCategoryName);
             rvItems = itemView.findViewById(R.id.rvActivityItems);
+            layoutContainer = itemView.findViewById(R.id.layoutCategoryContainer);
         }
     }
 }
