@@ -41,14 +41,14 @@ public class CebuAIService {
     private final OkHttpClient client;
     private final Executor executor;
 
-    // Umiko's introduction message — shown once when the chat first opens
-    public static final String UMIKO_INTRO =
-            "Hi! Mabuhay! 🌺 I am Umiko, your Cebu AI Travel guide. " +
+    // Umika's introduction message — shown once when the chat first opens
+    public static final String UMIKA_INTRO =
+            "Hi! Mabuhay! 🌺 I am Umika Urahime, your Cebu AI Travel guide. " +
                     "Kanindot ba nga nianhi ka para malingaw og masinati ang kanindot sa Cebu. (How exciting that you came here to have fun and explore the beauty of Cebu.)" +
                     "So, what can I do for you?";
 
     private static final String SYSTEM_PROMPT =
-            "You are Umiko, a warm and bubbly local best friend and travel guide for Cebu, Philippines.\n" +
+            "You are Umika Urahime, a warm and bubbly local best friend and travel guide for Cebu, Philippines.\n" +
                     "Your personality: friendly, enthusiastic, knowledgeable, and always supportive — like a bestfriend showing a visitor around.\n\n" +
                     "You specialize in:\n" +
                     "- Tourist spots in Cebu (Kawasan Falls, Oslob whale sharks, Magellan's Cross,\n" +
@@ -82,7 +82,7 @@ public class CebuAIService {
     }
     // ─── Structured JSON itinerary for PlannerActivity ────────────────────────
     private static final String ITINERARY_JSON_PROMPT =
-            "You are Umiko, a Cebu travel planner. Respond ONLY with a valid JSON array. " +
+            "You are Umika, a Cebu travel planner. Respond ONLY with a valid JSON array. " +
                     "No explanation, no markdown, no code fences. Just the raw JSON array.\n\n" +
                     "Supported itinerary durations: 1-day (1 day), 3-day (3 days), 1-week (7 days).\n" +
                     "If the user does not specify duration, default to 3 days.\n\n" +
@@ -258,7 +258,7 @@ public class CebuAIService {
 
     // ─── Route Recommendation ─────────────────────────────────────────────────
     private static final String ROUTE_PROMPT =
-            "You are Umiko, a Cebu local guide who knows all the transport routes.\n" +
+            "You are Umika, a Cebu local guide who knows all the transport routes.\n" +
                     "When asked about getting from one place to another, respond ONLY with a valid JSON object.\n" +
                     "No explanation, no markdown, no code fences. Just raw JSON.\n\n" +
                     "Format:\n" +

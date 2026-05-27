@@ -24,9 +24,9 @@ import ph.edu.usc24100050.Model.ItineraryItem;
 public class PlannerActivity extends AppCompatActivity {
 
     private RecyclerView rvGetaways;
-    private RecyclerView rvUmikoItinerary;
-    private TextView tvUmikoBanner;
-    private TextView tvUmikoEmpty;
+    private RecyclerView rvUmikaItinerary;
+    private TextView tvUmikaBanner;
+    private TextView tvUmikaEmpty;
     private GetawayAdapter adapter;
     private ItineraryAdapter itineraryAdapter;
     private PlannerViewModel viewModel;
@@ -46,16 +46,16 @@ public class PlannerActivity extends AppCompatActivity {
 
         // ── findViewById for ALL views before any use ─────────────────────────
         rvGetaways       = findViewById(R.id.rvGetaways);
-        rvUmikoItinerary = findViewById(R.id.rvUmikoItinerary);  // was missing!
-        tvUmikoBanner    = findViewById(R.id.tvUmikoBanner);      // was missing!
-        tvUmikoEmpty     = findViewById(R.id.tvUmikoEmpty);       // was missing!
+        rvUmikaItinerary = findViewById(R.id.rvUmikaItinerary);  // was missing!
+        tvUmikaBanner    = findViewById(R.id.tvUmikaBanner);      // was missing!
+        tvUmikaEmpty     = findViewById(R.id.tvUmikaEmpty);       // was missing!
 
         // Guard: if the layout doesn't have the Umiko section yet, skip safely
         if (rvGetaways != null) {
             rvGetaways.setLayoutManager(new LinearLayoutManager(this));
         }
-        if (rvUmikoItinerary != null) {
-            rvUmikoItinerary.setLayoutManager(new LinearLayoutManager(this));
+        if (rvUmikaItinerary != null) {
+            rvUmikaItinerary.setLayoutManager(new LinearLayoutManager(this));
         }
 
         // ── Getaways (user-created trips) ─────────────────────────────────────
@@ -66,19 +66,19 @@ public class PlannerActivity extends AppCompatActivity {
             rvGetaways.setAdapter(adapter);
         });
 
-        // ── Umiko AI Itinerary from Room DB ───────────────────────────────────
-        if (rvUmikoItinerary != null) {
+        // ── Umika AI Itinerary from Room DB ───────────────────────────────────
+        if (rvUmikaItinerary != null) {
             itineraryAdapter = new ItineraryAdapter();
-            rvUmikoItinerary.setAdapter(itineraryAdapter);
+            rvUmikaItinerary.setAdapter(itineraryAdapter);
             itineraryDao = AppDatabase.getInstance(this).itineraryDao();
             itineraryDao.getAll().observe(this, items -> {
                 allItems = items != null ? items : new ArrayList<>();
                 if (allItems.isEmpty()) {
-                    rvUmikoItinerary.setVisibility(View.GONE);
-                    if (tvUmikoEmpty != null) tvUmikoEmpty.setVisibility(View.VISIBLE);
+                    rvUmikaItinerary.setVisibility(View.GONE);
+                    if (tvUmikaEmpty != null) tvUmikaEmpty.setVisibility(View.VISIBLE);
                 } else {
-                    if (tvUmikoEmpty != null) tvUmikoEmpty.setVisibility(View.GONE);
-                    rvUmikoItinerary.setVisibility(View.VISIBLE);
+                    if (tvUmikaEmpty != null) tvUmikaEmpty.setVisibility(View.GONE);
+                    rvUmikaItinerary.setVisibility(View.VISIBLE);
                     // Only rebuild tabs when the day count actually changes
                     buildDayTabs(allItems);
                     filterAndShowDay(selectedDay, allItems);
@@ -86,15 +86,15 @@ public class PlannerActivity extends AppCompatActivity {
             });
         }
 
-        // ── Banner: shown when navigated from Umiko chat ──────────────────────
+        // ── Banner: shown when navigated from Umika chat ──────────────────────
         boolean fromChat = getIntent().getBooleanExtra("from_chat", false);
         int dayCount     = getIntent().getIntExtra("day_count", 0);
-        if (tvUmikoBanner != null) {
+        if (tvUmikaBanner != null) {
             if (fromChat && dayCount > 0) {
-                tvUmikoBanner.setVisibility(View.VISIBLE);
-                tvUmikoBanner.setText("🌺 Umika made you a " + dayCount + "-day itinerary! Enjoy Cebu!");
+                tvUmikaBanner.setVisibility(View.VISIBLE);
+                tvUmikaBanner.setText("🌺 Umika made you a " + dayCount + "-day itinerary! Enjoy Cebu!");
             } else {
-                tvUmikoBanner.setVisibility(View.GONE);
+                tvUmikaBanner.setVisibility(View.GONE);
             }
         }
 

@@ -114,7 +114,7 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        // Show Umiko's introduction greeting on first open
+        // Show Umika's introduction greeting on first open
         viewModel.showIntroIfNeeded();
 
         viewModel.navigateToPlanner.observe(this, items -> {
@@ -135,7 +135,7 @@ public class ChatActivity extends AppCompatActivity {
             viewModel.navigateToPlanner.setValue(null);
         });
 
-        // Navigate to MapActivity when Umiko sets a route automatically
+        // Navigate to MapActivity when Umika sets a route automatically
         viewModel.navigateToMap.observe(this, routeStr -> {
             if (routeStr == null || routeStr.isEmpty()) return;
             String[] parts = routeStr.split("\\|", 2);
@@ -270,7 +270,6 @@ public class ChatActivity extends AppCompatActivity {
         ObjectAnimator wiggle = ObjectAnimator.ofFloat(mascotView, "rotation", 0f, -10f, 10f, -10f, 10f, -7f, 7f, 0f);
         wiggle.setDuration(1000);
         wiggle.setRepeatCount(3);
-
         ObjectAnimator scaleX = ObjectAnimator.ofFloat(mascotView, "scaleX", 1f, 1.15f, 1f);
         ObjectAnimator scaleY = ObjectAnimator.ofFloat(mascotView, "scaleY", 1f, 1.15f, 1f);
         scaleX.setDuration(1000);
