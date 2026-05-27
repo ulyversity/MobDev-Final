@@ -19,7 +19,7 @@ import okhttp3.Response;
 
 public class Groq implements LLMAPI {
     // this class solely interacts with the AI
-    private final String API_KEY = "";
+    private final String API_KEY = "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";
     private final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
     private final String MODEL = "openai/gpt-oss-20b";
 

@@ -1,7 +1,6 @@
 package ph.edu.usc24100050;
 
 import android.app.Application;
-import android.content.Intent;
 import android.util.Log;
 
 import androidx.lifecycle.AndroidViewModel;
@@ -286,25 +285,52 @@ public class ChatViewModel extends AndroidViewModel {
     private List<ItineraryItem> parseItineraryJson(String raw) {
         try {
             String clean = raw.replaceAll("(?s)```json|```", "").trim();
-            JSONArray arr = new JSONArray(clean);
+            JSONObject root = new JSONObject(clean);
+            JSONObject itinerary = root.getJSONObject("itinerary");
+            JSONArray daysArr = itinerary.getJSONArray("days");
+
             List<ItineraryItem> items = new ArrayList<>();
-            for (int i = 0; i < arr.length(); i++) {
-                JSONObject obj = arr.getJSONObject(i);
-                ItineraryItem item = new ItineraryItem();
-                item.setDay(obj.optInt("day", 1));
-                item.setTime(obj.optString("time", ""));
-                item.setPlaceName(obj.optString("place_name", ""));
-                item.setPlaceType(obj.optString("place_type", ""));
-                item.setDurationMinutes(obj.optInt("duration_minutes", 60));
-                // Combine notes + travel info for a richer task description
-                String notes = obj.optString("notes", "");
-                String travel = obj.optString("travel_from_previous", "");
-                String fullNotes = notes + (travel.isEmpty() ? "" : " | 🚌 " + travel);
-                item.setNotes(fullNotes);
-                item.setLatitude(obj.optDouble("latitude", 10.3157));
-                item.setLongitude(obj.optDouble("longitude", 123.8854));
-                item.setTask(item.getPlaceName() + (notes.isEmpty() ? "" : ": " + notes));
-                items.add(item);
+            for (int i = 0; i < daysArr.length(); i++) {
+                JSONObject dayObj = daysArr.getJSONObject(i);
+                int dayNumber = dayObj.optInt("day_number", i + 1);
+                JSONArray activities = dayObj.getJSONArray("activities");
+
+                for (int j = 0; j < activities.length(); j++) {
+                    JSONObject act = activities.getJSONObject(j);
+                    ItineraryItem item = new ItineraryItem();
+                    item.setDay(dayNumber);
+
+                    // Format start_time if it's HHMM
+                    String startTime = act.optString("start_time", "");
+                    if (startTime.length() == 4 && startTime.matches("\\d+")) {
+                        int h = Integer.parseInt(startTime.substring(0, 2));
+                        int m = Integer.parseInt(startTime.substring(2));
+                        String ampm = (h >= 12) ? "PM" : "AM";
+                        int h12 = (h % 12 == 0) ? 12 : h % 12;
+                        startTime = String.format("%d:%02d %s", h12, m, ampm);
+                    }
+                    item.setTime(startTime);
+
+                    item.setPlaceName(act.optString("venue", ""));
+                    item.setPlaceType(act.optString("place_type", ""));
+                    item.setDurationMinutes(act.optInt("duration_minutes", 60));
+
+                    String notes = act.optString("notes", "");
+                    String travel = act.optString("travel_from_previous", "");
+                    String activityDesc = act.optString("activity", "");
+
+                    // Combined notes + travel info for a richer description
+                    String fullNotes = activityDesc;
+                    if (!notes.isEmpty()) fullNotes += "\nNote: " + notes;
+                    if (!travel.isEmpty()) fullNotes += "\n🚌 " + travel;
+
+                    item.setNotes(fullNotes);
+                    item.setLatitude(act.optDouble("latitude", 10.3157));
+                    item.setLongitude(act.optDouble("longitude", 123.8854));
+                    item.setTask(item.getPlaceName() + ": " + activityDesc);
+
+                    items.add(item);
+                }
             }
             return items;
         } catch (Exception e) {

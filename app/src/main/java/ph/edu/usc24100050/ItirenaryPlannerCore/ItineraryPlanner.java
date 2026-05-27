@@ -14,387 +14,236 @@ import ph.edu.usc24100050.Model.Itinerary;
 import ph.edu.usc24100050.Model.UserItineraryPreference;
 
 public class ItineraryPlanner {
-    // this class is all about creating the itinerary that you get from AI
-    // by creating the model's based on the output
-    // these models can then be used in a controller to create an output
     private LLMAPI ai;
-    public ItineraryPlanner(LLMAPI ai)
-    {
+    
+    public ItineraryPlanner(LLMAPI ai) {
         this.ai = ai;
     }
 
-    public ActivityRoot createActivityRootResponse(String rawResponseText)
-    {
-        Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
+    public ActivityRoot createActivityRootResponse(String rawResponseText) {
         ObjectMapper mapper = new ObjectMapper();
-
         try {
             JsonNode root = mapper.readTree(rawResponseText);
-            String contentJson = root
-                    .get("choices")
-                    .get(0)
-                    .get("message")
-                    .get("content")
-                    .asText();
-
+            String contentJson = root.get("choices").get(0).get("message").get("content").asText();
             JsonNode userPrefNode = mapper.readTree(contentJson);
-            Log.d("HELLOWORLD", userPrefNode.toString());
-            ActivityRoot activityRoot = mapper.treeToValue(userPrefNode, ActivityRoot.class);
-            Log.d("HELLOWORLD", activityRoot.getActivity());
-            Log.d("HELLOWORLD", activityRoot.getCategories().get(0).getCategoryName());
-            Log.d("HELLOWORLD", activityRoot.getCategories().get(0).getCategoryList().get(0).getTitle());
-
-            return activityRoot;
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-            Log.e("HELLOWORLDERROR", e.getMessage());
+            return mapper.treeToValue(userPrefNode, ActivityRoot.class);
+        } catch (Exception e) {
+            Log.e("ItineraryPlanner", "Error parsing activity root: " + e.getMessage());
             return null;
         }
     }
 
-    public String createBetterItineraryResponse(String rawResponseText)
-    {
-        Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
+    public String createBetterItineraryResponse(String rawResponseText) {
         ObjectMapper mapper = new ObjectMapper();
-
         try {
-            Log.d("HELLOWORLD", rawResponseText);
-
             JsonNode root = mapper.readTree(rawResponseText);
-            String contentJson = root
-                    .get("choices")
-                    .get(0)
-                    .get("message")
-                    .get("content")
-                    .asText();
-
-            Log.d("HELLOWORLD", contentJson);
-
-            return contentJson;
-
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-            Log.e("HELLOWORLDERROR", e.getMessage());
+            return root.get("choices").get(0).get("message").get("content").asText();
+        } catch (Exception e) {
+            Log.e("ItineraryPlanner", "Error parsing better itinerary: " + e.getMessage());
             return null;
         }
     }
 
-    public Itinerary createItinerary(String rawResponseText)
-    {
-        Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
+    public Itinerary createItinerary(String rawResponseText) {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.setPropertyNamingStrategy(new PropertyNamingStrategies.SnakeCaseStrategy());
-
+        // Removed SnakeCaseStrategy because models now use @JsonProperty for consistency
         try {
             JsonNode root = mapper.readTree(rawResponseText);
-            String contentJson = root
-                    .get("choices")
-                    .get(0)
-                    .get("message")
-                    .get("content")
-                    .asText();
-
+            String contentJson = root.get("choices").get(0).get("message").get("content").asText();
             JsonNode contentNode = mapper.readTree(contentJson);
-
             JsonNode itineraryNode = contentNode.get("itinerary");
-            Itinerary itinerary = mapper.treeToValue(itineraryNode, Itinerary.class);
-
-            return itinerary;
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-            Log.e("HELLOWORLDERROR", e.getMessage());
+            return mapper.treeToValue(itineraryNode, Itinerary.class);
+        } catch (Exception e) {
+            Log.e("ItineraryPlanner", "Error parsing itinerary: " + e.getMessage());
             return null;
         }
     }
 
-    public UserItineraryPreference createUserItineraryPreference(String rawResponseText)
-    {
-        Log.d("HELLOWORLD", "TEST CHAT");
-        Log.d("HELLOWORLD", rawResponseText);
-
+    public UserItineraryPreference createUserItineraryPreference(String rawResponseText) {
         ObjectMapper mapper = new ObjectMapper();
-
         try {
             JsonNode root = mapper.readTree(rawResponseText);
-            String contentJson = root
-                    .get("choices")
-                    .get(0)
-                    .get("message")
-                    .get("content")
-                    .asText();
-
+            String contentJson = root.get("choices").get(0).get("message").get("content").asText();
             JsonNode userPrefNode = mapper.readTree(contentJson);
-            UserItineraryPreference response = mapper.treeToValue(userPrefNode, UserItineraryPreference.class);
-            Log.d("HELLOWORLD", "TEST CHAT");
-            Log.d("HELLOWORLD",  response.getActivityName());
-            Log.d("HELLOWORLD", ""  + response.getCities().size());
-            return response;
-
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            Log.e("HELLOWORLDE", e.getMessage());
-
-            Log.e("HELLOWORLDERROR", e.getMessage());
+            return mapper.treeToValue(userPrefNode, UserItineraryPreference.class);
+        } catch (Exception e) {
+            Log.e("ItineraryPlanner", "Error parsing user preference: " + e.getMessage());
             return null;
         }
     }
 
-    public CompletableFuture<String> createBetterItinerary(String prompt, String activity)
-    {
-
-
-        Log.d("HELLOWORLD", "IS IT WORKING CHAT??");
-
-        String role = "You are an expert local tourist guide in Cebu City. " +
-                "The user wants to visit a specific spot for: " + activity + ". " +
-                "Your goal is to provide a comprehensive, step-by-step guide for this place. " +
-                "STRICT FORMATTING RULES: " +
-                "1. Use '##' for the Main Title (The Name of the Place). " +
-                "2. Use '###' for Sub-headers (e.g., How to Get There, Costs, Tips). " +
-                "3. Use bullet points for lists. " +
-                "4. Use bolding for key terms like prices or specific bus terminals. " +
-                "5. Always use standard Markdown.";;
+    public CompletableFuture<String> createBetterItinerary(String prompt, String activity) {
+        String role = """
+            You are Umiko, a warm local travel guide for Cebu.
+            The user wants to visit: """ + activity + """
+            .
+            
+            Write the itinerary in this EXACT format for each activity block:
+            
+            ## 🗓️ [Day Label e.g. "Day 1 — Cebu City Heritage"]
+            
+            ---
+            
+            ### 🕘 [Time] | 📍 [Venue Name]
+            
+            - 🎯 **What to do:** [Specific activity — not generic]
+            - 💰 **Cost:** [Entrance fee or estimated spend, or "Free"]
+            - ⏱️ **Duration:** [How long to spend here]
+            - 🚗 **Getting there:** [From previous stop — transport type + estimated time + cost]
+            - 🗺️ **Map:** [https://www.google.com/maps/search/?api=1&query=[VenueName+Location] ]
+            - ⭐ **Reviews:** [https://www.google.com/search?q=[VenueName+Cebu+reviews] ]
+            
+            ---
+            
+            Rules:
+            - NEVER write generic lines like "enjoy the view" or "take lots of photos"
+            - Every field must have a real, specific value — no placeholders
+            - For map and review links, encode the venue name and location properly in the URL (replace spaces with +)
+            - Group nearby venues in the same time block area
+            - Between distant areas, add a travel break line: "🚗 ~[X] min by [transport] to next area"
+            - End each day with: "🏨 **End of Day** — [one-line note on where to rest or next day prep]"
+            - Keep bullet points short — max 1 sentence each
+            """;
 
         return ai.ask(prompt, role)
-                .thenApply(this::createBetterItineraryResponse)
-                .exceptionally(e -> {
-                    Log.e("HELLOWORLDERROR", e.getMessage());
-                    e.printStackTrace();
-                    return null;
-                });
-
+                .thenApply(this::createBetterItineraryResponse);
     }
 
-    public CompletableFuture<ActivityRoot> createActivityRoot(String activity)
-    {
-        String responseFormat =
-                                """
-                                "response_format": {
-                                   "type": "json_schema",
-                                   "json_schema": {
-                                     "name": "hiking_itinerary_response",
-                                     "strict": true,
-                                     "schema": {
-                                       "type": "object",
-                                       "properties": {
-                                         "activity": {
-                                           "type": "string"
-                                         },
-                                         "categories": {
-                                           "type": "array",
-                                           "items": {
-                                             "type": "object",
-                                             "properties": {
-                                               "categoryName": {
-                                                 "type": "string"
-                                               },
-                                               "backgroundColor": {
-                                                 "type": "string"
-                                               },
-                                               "categoryList": {
-                                                 "type": "array",
-                                                 "items": {
-                                                   "type": "object",
-                                                   "properties": {
-                                                     "title": {
-                                                       "type": "string"
-                                                     },
-                                                     "description": {
-                                                       "type": "string"
-                                                     },
-                                                     "location": {
-                                                       "type": "string"
-                                                     }
-                                                   },
-                                                   "required": [
-                                                     "title",
-                                                     "description",
-                                                     "location"
-                                                   ],
-                                                   "additionalProperties": false
-                                                 }
-                                               }
-                                             },
-                                             "required": [
-                                               "categoryName",
-                                               "backgroundColor",
-                                               "categoryList"
-                                             ],
-                                             "additionalProperties": false
-                                           }
-                                         }
-                                       },
-                                       "required": [
-                                         "activity",
-                                         "categories"
-                                       ],
-                                       "additionalProperties": false
-                                     }
-                                   }
-                                 }
-                                """;
-
-
-        String role = "You are an expert local tourist guide in Cebu City. " +
-                "Your goal is to recommend spots in Cebu based on the user's activity (i.e, hiking, swimming, etc), " +
-                "You should categorize your response by grouping similar spots (example: grouped by difficulty, grouped by price category, etc.). " +
-                "Use only pastel colors for backgroundColors. " +
-                "Send response in JSON";
-
-        return ai.ask(activity, role, responseFormat)
-                .thenApply(this::createActivityRootResponse)
-                .exceptionally(e -> {
-                    Log.e("HELLOWORLDERROR", e.getMessage());
-                    e.printStackTrace();
-                    return null;
-                });
-
-    }
-
-
-    public CompletableFuture<UserItineraryPreference> createUserPreferencePlan(String activity)
-    {
+    public CompletableFuture<ActivityRoot> createActivityRoot(String activity) {
         String responseFormat = """
-                                "response_format": {
-                                    "type": "json_schema",
-                                    "json_schema": {
-                                        "name": "user_itinerary_response",
-                                        "strict": true,
-                                        "schema": {
-                                            "type": "object",
-                                            "properties": {
-                                                "activityName": {
-                                                    "type": "string"
-                                                },
-                                                "cities": {
-                                                    "type": "array",
-                                                    "items": {
-                                                        "type": "string"
-                                                    }
-                                                }
-                                            },
-                                            "required": [
-                                                "activityName",
-                                                "cities"
-                                            ],
-                                            "additionalProperties": false
-                                        }
-                                    }
-                                }
-                                """;
-
-
-        String role = "You are an Itinerary Planner for Cebu, Your goal is to give all the cities available for an activity, if user hasn't specified a date range then try your best to create a 3 day plan. Send response in JSON";
-
-        return ai.ask(activity, role, responseFormat)
-                .thenApply(this::createUserItineraryPreference)
-                .exceptionally(e -> {
-                    e.printStackTrace();
-                    return null;
-                });
-
-    }
-
-    public CompletableFuture<Itinerary> createPlan(String plan)
-    {
-        String responseFormat = """
-                            "response_format": {
-                                "type": "json_schema",
-                                "json_schema": {
-                                 "name": "product_review",
-                                 "strict": true,
-                                 "schema": {
-                                     "type": "object",
-                                     "properties": {
-                                         "itinerary": {
-                                             "type": "object",
-                                             "properties": {
-                                                 "start_date": {
-                                                     "type": "string",
-                                                     "format": "date"
-                                                 },
-                                                 "stop_date": {
-                                                     "type": "string",
-                                                     "format": "date"
-                                                 },
-                                                 "total": {
-                                                     "type": "integer"
-                                                 },
-                                                 "days": {
-                                                     "type": "array",
-                                                     "items": {
-                                                         "type": "object",
-                                                         "properties": {
-                                                             "date": {
-                                                                 "type": "string",
-                                                                 "format": "date"
-                                                             },
-                                                             "activities": {
-                                                                 "type": "array",
-                                                                 "items": {
-                                                                     "type": "object",
-                                                                     "properties": {
-                                                                         "venue": {
-                                                                             "type": "string"
-                                                                         },
-                                                                         "activity": {
-                                                                             "type": "string"
-                                                                         },
-                                                                         "start_time": {
-                                                                             "type": "string",
-                                                                             "pattern": "^[0-9]{4}$"
-                                                                         },
-                                                                         "stop_time": {
-                                                                             "type": "string",
-                                                                             "pattern": "^[0-9]{4}$"
-                                                                         }
-                                                                     },
-                                                                     "required": [
-                                                                         "venue",
-                                                                         "activity",
-                                                                         "start_time",
-                                                                         "stop_time"
-                                                                     ],
-                                                                     "additionalProperties": false
-                                                                 }
-                                                             }
-                                                         },
-                                                         "required": [
-                                                             "date",
-                                                             "activities"
-                                                         ],
-                                                         "additionalProperties": false
-                                                     }
-                                                 }
-                                             },
-                                             "required": [
-                                                 "start_date",
-                                                 "stop_date",
-                                                 "total",
-                                                 "days"
-                                             ],
-                                             "additionalProperties": false
-                                         }
-                                     },
-                                     "required": [
-                                         "itinerary"
-                                     ],
-                                     "additionalProperties": false
+                "response_format": {
+                   "type": "json_schema",
+                   "json_schema": {
+                     "name": "cebu_activity_recommendations",
+                     "strict": true,
+                     "schema": {
+                       "type": "object",
+                       "properties": {
+                         "activity": { "type": "string" },
+                         "categories": {
+                           "type": "array",
+                           "items": {
+                             "type": "object",
+                             "properties": {
+                               "categoryName": { "type": "string" },
+                               "backgroundColor": { "type": "string" },
+                               "categoryList": {
+                                 "type": "array",
+                                 "items": {
+                                   "type": "object",
+                                   "properties": {
+                                     "title": { "type": "string" },
+                                     "description": { "type": "string" },
+                                     "location": { "type": "string" }
+                                   },
+                                   "required": ["title", "description", "location"],
+                                   "additionalProperties": false
                                  }
-                                }
-                            }
+                               }
+                             },
+                             "required": ["categoryName", "backgroundColor", "categoryList"],
+                             "additionalProperties": false
+                           }
+                         }
+                       },
+                       "required": ["activity", "categories"],
+                       "additionalProperties": false
+                     }
+                   }
+                 }
                 """;
 
-        String role = "You are an Itinerary Planner for Cebu, The plans should be replicable in real life. Send response in JSON";
+        String role = "You are Umiko, a Cebu travel guide. Categorize spots in Cebu for: " + activity + ". " +
+                "Use pastel background colors and JSON format.";
+
+        return ai.ask(activity, role, responseFormat)
+                .thenApply(this::createActivityRootResponse);
+    }
+    public CompletableFuture<Itinerary> createPlan(String plan) {
+        String responseFormat = """
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                 "name": "cebu_itinerary",
+                 "strict": true,
+                 "schema": {
+                     "type": "object",
+                     "properties": {
+                         "itinerary": {
+                             "type": "object",
+                             "properties": {
+                                 "start_date": { "type": "string" },
+                                 "stop_date": { "type": "string" },
+                                 "total": { "type": "integer" },
+                                 "days": {
+                                     "type": "array",
+                                     "items": {
+                                         "type": "object",
+                                         "properties": {
+                                             "date": { "type": "string" },
+                                             "day_number": { "type": "integer" },
+                                             "activities": {
+                                                 "type": "array",
+                                                 "items": {
+                                                     "type": "object",
+                                                     "properties": {
+                                                         "venue": { "type": "string" },
+                                                         "activity": { "type": "string" },
+                                                         "start_time": { "type": "string", "pattern": "^[0-9]{4}$" },
+                                                         "stop_time": { "type": "string", "pattern": "^[0-9]{4}$" },
+                                                         "place_type": { "type": "string", "enum": ["HISTORICAL", "BEACH", "FOOD", "NATURE", "SHOPPING", "RELIGIOUS"] },
+                                                         "duration_minutes": { "type": "integer" },
+                                                         "notes": { "type": "string" },
+                                                         "travel_from_previous": { "type": "string" },
+                                                         "latitude": { "type": "number" },
+                                                         "longitude": { "type": "number" }
+                                                     },
+                                                     "required": ["venue", "activity", "start_time", "stop_time", "place_type", "duration_minutes", "notes", "travel_from_previous", "latitude", "longitude"],
+                                                     "additionalProperties": false
+                                                 }
+                                             }
+                                         },
+                                         "required": ["date", "day_number", "activities"],
+                                         "additionalProperties": false
+                                     }
+                                 }
+                             },
+                             "required": ["start_date", "stop_date", "total", "days"],
+                             "additionalProperties": false
+                         }
+                     },
+                     "required": ["itinerary"],
+                     "additionalProperties": false
+                 }
+                }
+            }
+            """;
+
+        String role = """
+            You are Umiko, a warm and knowledgeable local travel expert for Cebu, Philippines.
+            
+            When creating an itinerary, follow these principles:
+            
+            1. LOGICAL FLOW: Order activities by geography to minimize backtracking. Group nearby spots together.
+            
+            2. REALISTIC TIMING: Account for travel time between venues in travel_from_previous (e.g., "~15 min by habal-habal from Tops"). Include buffer time for meals, rest, and transit.
+            
+            3. RICH NOTES: The notes field should include:
+               - What makes this spot special or worth visiting
+               - Practical tips (opening hours, entrance fees, what to bring, best time of day)
+               - Insider advice (what to order, where to park, what to avoid)
+               - Any reminders relevant to the traveler's context (e.g., "store luggage at hotel before heading out")
+            
+            4. HONEST SCHEDULING: If a day has a free/flexible block (e.g., personal meetup, open afternoon), include it as an activity with venue like "TBD - Free Time" and use notes to suggest nearby options.
+            
+            5. TRANSITIONS: For the last activity of a day or trip, include departure logistics in notes (e.g., transport to airport, check-in reminder, recommended departure time).
+            
+            6. ACCURATE COORDINATES: Use precise, real-world latitude and longitude for every venue in Cebu.
+            
+            Use HHMM format for times (e.g., '0900'). Respond only in valid JSON matching the schema.
+            """;
 
         return ai.ask(plan, role, responseFormat)
-                .thenApply(this::createItinerary)
-                .exceptionally(e -> {
-                    e.printStackTrace();
-                    return null;
-                });
+                .thenApply(this::createItinerary);
     }
 }
