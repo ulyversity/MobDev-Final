@@ -1,7 +1,9 @@
 package ph.edu.usc24100050;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -22,6 +24,7 @@ import ph.edu.usc24100050.ItirenaryPlannerCore.LLMAPI;
 public class BetterItinerary extends AppCompatActivity {
 
     TextView txtMarkdowntext;
+    Button btnGoToMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +38,7 @@ public class BetterItinerary extends AppCompatActivity {
         });
 
         txtMarkdowntext = findViewById(R.id.txtMarkdownText);
+        btnGoToMap = findViewById(R.id.btnGoToMap);
 
         LLMAPI groq = new Groq();
         ItineraryPlanner planner = new ItineraryPlanner(groq);
@@ -44,6 +48,12 @@ public class BetterItinerary extends AppCompatActivity {
         String activity = getIntent().getStringExtra("activity");
 
         String prompt = String.format("Can you tell me more about %s like how do i reach %s from my location which is University of San Carlos Talamban Campus, if jeep ride is possible and more? tips and tricks and more", title, location);
+
+        btnGoToMap.setOnClickListener(v -> {
+            Intent intent = new Intent(BetterItinerary.this, MapActivity.class);
+            intent.putExtra("location", location);
+            startActivity(intent);
+        });
 
         planner.createBetterItinerary(prompt, activity)
                 .thenAccept(betterItinerary -> {
