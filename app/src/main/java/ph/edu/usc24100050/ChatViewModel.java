@@ -49,7 +49,7 @@ public class ChatViewModel extends AndroidViewModel {
             "activities in cebu", "what to see", "sightseeing"
     };
 
-    // ── Route triggers: user wants Umiko to SET the route for them ───────────
+    // ── Route triggers: user wants Umika to SET the route for them ───────────
     private static final String[] ROUTE_SET_TRIGGERS = {
             "set route", "add route", "plan my route", "navigate me",
             "set navigation", "add to map", "open map to", "take me to"
@@ -72,11 +72,11 @@ public class ChatViewModel extends AndroidViewModel {
     public LiveData<List<Message>> getMessages() { return messages; }
     public LiveData<Boolean> getIsLoading()      { return isLoading; }
 
-    /** Call this once when ChatActivity starts to show Umiko's greeting. */
+    /** Call this once when ChatActivity starts to show Umika's greeting. */
     public void showIntroIfNeeded() {
         if (!introShown) {
             introShown = true;
-            postMessage("assistant", CebuAIService.UMIKO_INTRO);
+            postMessage("assistant", CebuAIService.UMIKA_INTRO);
         }
     }
 
@@ -87,7 +87,7 @@ public class ChatViewModel extends AndroidViewModel {
 
         String lower = userMessage.toLowerCase();
 
-        // 1. User explicitly asks Umiko to CREATE + FILL an itinerary
+        // 1. User explicitly asks Umika to CREATE + FILL an itinerary
         if (matchesAny(lower, ITINERARY_CREATE_TRIGGERS)) {
             handleItineraryCreate(userMessage);
         }
@@ -95,7 +95,7 @@ public class ChatViewModel extends AndroidViewModel {
         else if (matchesAny(lower, ITINERARY_SUGGEST_TRIGGERS)) {
             handleItinerarySuggest(userMessage);
         }
-        // 3. User wants Umiko to SET the route in the map automatically
+        // 3. User wants Umika to SET the route in the map automatically
         else if (matchesAny(lower, ROUTE_SET_TRIGGERS)) {
             handleRouteSet(userMessage);
         }
@@ -155,7 +155,7 @@ public class ChatViewModel extends AndroidViewModel {
 
     // ─── 2. Suggest options without auto-filling planner ─────────────────────
     private void handleItinerarySuggest(String userMessage) {
-        // Append an instruction so Umiko returns options, not a fixed plan
+        // Append an instruction so Umika returns options, not a fixed plan
         String enrichedPrompt = userMessage +
                 "\n\n[Give the user a list of possible activities and places they can do in Cebu, " +
                 "with 2-3 alternatives per category. Do NOT create a fixed itinerary — " +
