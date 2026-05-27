@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 
 import ph.edu.usc24100050.Model.ActivityRoot;
 import ph.edu.usc24100050.Model.Itinerary;
+import ph.edu.usc24100050.Model.ItineraryResponseModel;
 import ph.edu.usc24100050.Model.UserItineraryPreference;
 
 public class ItineraryPlanner {
@@ -53,7 +54,7 @@ public class ItineraryPlanner {
         }
     }
 
-    public String createBetterItineraryResponse(String rawResponseText)
+    public ItineraryResponseModel createBetterItineraryResponse(String rawResponseText)
     {
         Log.d("HELLOWORLD", "IS IT WORKING CHAT?");
         ObjectMapper mapper = new ObjectMapper();
@@ -62,22 +63,21 @@ public class ItineraryPlanner {
             Log.d("HELLOWORLD", rawResponseText);
 
             JsonNode root = mapper.readTree(rawResponseText);
-            String contentJson = root
-                    .get("choices")
-                    .get(0)
-                    .get("message")
-                    .get("content")
-                    .asText();
 
-            Log.d("HELLOWORLD", contentJson);
+            String content =
+                    root.get("choices")
+                            .get(0)
+                            .get("message")
+                            .get("content")
+                            .asText();
 
-            return contentJson;
+            return mapper.readValue(
+                    content,
+                    ItineraryResponseModel.class
+            );
 
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-            Log.e("HELLOWORLDERROR", e.getMessage());
-            return null;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -142,30 +142,68 @@ public class ItineraryPlanner {
         }
     }
 
-    public CompletableFuture<String> createBetterItinerary(String prompt, String activity)
-    {
+    public CompletableFuture<ItineraryResponseModel> createBetterItinerary(
+            String prompt,
+            String activity
+    ) {
+
+        String role = "You are a travel itinerary generator. " +
+        "Rules: " +
+        "Generate realistic travel times, " +
+        "Include commuting and activities, " +
+        "Keep actions concise, " +
+        "Use Cebu transportation context";
+
+        String responseFormat = """
+        "response_format": {
+          "type": "json_schema",
+          "json_schema": {
+            "name": "travel_itinerary",
+            "strict": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "itinerary": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "time": {
+                        "type": "string"
+                      },
+                      "action": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "time",
+                      "action",
+                      "location"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "itinerary"
+              ],
+              "additionalProperties": false
+            }
+          }
+        }
+        """;
 
 
-        Log.d("HELLOWORLD", "IS IT WORKING CHAT??");
-
-        String role = "You are an expert local tourist guide in Cebu City. " +
-                "The user wants to visit a specific spot for: " + activity + ". " +
-                "Your goal is to provide a comprehensive, step-by-step guide for this place. " +
-                "STRICT FORMATTING RULES: " +
-                "1. Use '##' for the Main Title (The Name of the Place). " +
-                "2. Use '###' for Sub-headers (e.g., How to Get There, Costs, Tips). " +
-                "3. Use bullet points for lists. " +
-                "4. Use bolding for key terms like prices or specific bus terminals. " +
-                "5. Always use standard Markdown.";;
-
-        return ai.ask(prompt, role)
+        return ai.ask(prompt, role, responseFormat)
                 .thenApply(this::createBetterItineraryResponse)
                 .exceptionally(e -> {
                     Log.e("HELLOWORLDERROR", e.getMessage());
                     e.printStackTrace();
                     return null;
                 });
-
     }
 
     public CompletableFuture<ActivityRoot> createActivityRoot(String activity)
