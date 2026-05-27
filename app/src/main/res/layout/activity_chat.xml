@@ -15,6 +15,9 @@
         android:contentDescription="Mascot"
         android:scaleType="fitCenter"
         android:src="@drawable/umika_urahime"
+        android:background="@null"
+        android:foreground="@null"
+        android:stateListAnimator="@null"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -106,17 +109,23 @@
         app:layout_constraintTop_toTopOf="@id/chatBoxCard" />
 
     <!-- View Plan Button (Appears when minimized) -->
-    <Button
+    <TextView
         android:id="@+id/btnShowPlan"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
-        android:layout_margin="12dp"
-        android:backgroundTint="#1A3A5C"
-        android:paddingHorizontal="12dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/card_bg"
+        android:elevation="6dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="8dp"
         android:text="View Plan"
-        android:textAllCaps="false"
-        android:textColor="@android:color/white"
-        android:textSize="12sp"
+        android:textColor="#1A3A5C"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="?attr/selectableItemBackground"
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/chipsScroll" />

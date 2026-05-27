@@ -1,5 +1,6 @@
 package ph.edu.usc24100050;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
@@ -28,6 +29,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private ImageView mascotView;
     private ObjectAnimator idleAnim;
+    private Animator currentActionAnim;
     private ChatViewModel viewModel;
     private MessageAdapter messageAdapter;
     private ItineraryAdapter itineraryAdapter;
@@ -39,6 +41,7 @@ public class ChatActivity extends AppCompatActivity {
     private EditText inputField;
     private Button sendButton;
     private ProgressBar progressBar;
+    private long lastMascotClickTime = 0;
 
     private final String[] suggestions = {
             "What can I do in Cebu?", "Best lechon spots",
@@ -62,7 +65,15 @@ public class ChatActivity extends AppCompatActivity {
         tvItineraryEmpty = findViewById(R.id.tvItineraryEmpty);
         mascotView       = findViewById(R.id.mascotView);
 
-        mascotView.setOnClickListener(v -> playHappyAnim());
+        mascotView.setOnClickListener(v -> {
+            long now = System.currentTimeMillis();
+            if (now - lastMascotClickTime < 400) {
+                playHappyAnim(); // Big wiggle + Scale (Double click)
+            } else {
+                playSmallWiggle(); // Small tilt (Single click)
+            }
+            lastMascotClickTime = now;
+        });
 
         findViewById(R.id.btnMinimizeItinerary).setOnClickListener(v -> {
             itineraryContainer.setVisibility(View.GONE);
@@ -226,20 +237,46 @@ public class ChatActivity extends AppCompatActivity {
         idleAnim.start();
     }
 
+    private void playSmallWiggle() {
+        if (mascotView == null) return;
+        if (idleAnim != null) idleAnim.cancel();
+        if (currentActionAnim != null) currentActionAnim.cancel();
+
+        mascotView.setImageResource(R.drawable.umika_1);
+
+        ObjectAnimator wiggle = ObjectAnimator.ofFloat(mascotView, "rotation", 0f, -5f, 5f, -5f, 5f, 0f);
+        wiggle.setDuration(400);
+        wiggle.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                if (currentActionAnim == animation) {
+                    mascotView.setImageResource(R.drawable.umika_urahime);
+                    mascotView.post(() -> startIdleAnim());
+                    currentActionAnim = null;
+                }
+            }
+        });
+        currentActionAnim = wiggle;
+        wiggle.start();
+    }
+
     private void playHappyAnim() {
         if (mascotView == null) return;
         if (idleAnim != null) idleAnim.cancel();
+        if (currentActionAnim != null) currentActionAnim.cancel();
 
-        ObjectAnimator wiggle = ObjectAnimator.ofFloat(mascotView, "rotation", 0f, -10f, 10f, -7f, 7f, 0f);
-        wiggle.setDuration(600);
-        wiggle.setRepeatCount(2);
+        mascotView.setImageResource(R.drawable.umika_2);
+
+        ObjectAnimator wiggle = ObjectAnimator.ofFloat(mascotView, "rotation", 0f, -10f, 10f, -10f, 10f, -7f, 7f, 0f);
+        wiggle.setDuration(1000);
+        wiggle.setRepeatCount(3);
 
         ObjectAnimator scaleX = ObjectAnimator.ofFloat(mascotView, "scaleX", 1f, 1.15f, 1f);
         ObjectAnimator scaleY = ObjectAnimator.ofFloat(mascotView, "scaleY", 1f, 1.15f, 1f);
-        scaleX.setDuration(600);
-        scaleY.setDuration(600);
-        scaleX.setRepeatCount(2);
-        scaleY.setRepeatCount(2);
+        scaleX.setDuration(1000);
+        scaleY.setDuration(1000);
+        scaleX.setRepeatCount(3);
+        scaleY.setRepeatCount(3);
         scaleX.setInterpolator(new OvershootInterpolator());
         scaleY.setInterpolator(new OvershootInterpolator());
 
@@ -248,9 +285,14 @@ public class ChatActivity extends AppCompatActivity {
         happy.addListener(new android.animation.AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(android.animation.Animator animation) {
-                mascotView.post(() -> startIdleAnim());
+                if (currentActionAnim == animation) {
+                    mascotView.setImageResource(R.drawable.umika_urahime);
+                    mascotView.post(() -> startIdleAnim());
+                    currentActionAnim = null;
+                }
             }
         });
+        currentActionAnim = happy;
         happy.start();
     }
 }

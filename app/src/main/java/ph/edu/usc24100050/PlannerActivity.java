@@ -92,7 +92,7 @@ public class PlannerActivity extends AppCompatActivity {
         if (tvUmikoBanner != null) {
             if (fromChat && dayCount > 0) {
                 tvUmikoBanner.setVisibility(View.VISIBLE);
-                tvUmikoBanner.setText("🌺 Umiko made you a " + dayCount + "-day itinerary! Enjoy Cebu!");
+                tvUmikoBanner.setText("🌺 Umika made you a " + dayCount + "-day itinerary! Enjoy Cebu!");
             } else {
                 tvUmikoBanner.setVisibility(View.GONE);
             }

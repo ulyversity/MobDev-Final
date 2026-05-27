@@ -31,7 +31,7 @@ public class CebuAIService {
     private static final String KEY_NAME = "groq_api_key";
 
     // Groq API keys (gsk_...)
-    private static final String PRIMARY_KEY = "";
+    private static final String PRIMARY_KEY = "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";
     private static final String BACKUP_KEY  = ""; // add a second Groq key here if you have one
 
     private static final String API_URL = "https://api.groq.com/openai/v1/chat/completions";
